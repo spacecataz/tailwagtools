@@ -45,4 +45,4 @@ should plot the 1-hour vs. 1-minute data and show obvious differences:
 >>> run test_omni.py
 ```
 
-![Expected output](images/test_omni.png =250x)
+![Expected output](images/test_omni.png)
