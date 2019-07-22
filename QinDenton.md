@@ -1,4 +1,4 @@
-#One-Minute OMNI and Qin-Denton Data
+# One-Minute OMNI and Qin-Denton Data
 
 This package heavily leverages OMNI data (a multi-satellite database of solar
 wind files) and Qin-Denton data (a data product of OMNI data).  These data
