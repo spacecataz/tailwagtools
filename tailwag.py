@@ -4,7 +4,7 @@ A module for performing analysis of outflow wagging the tail.
 '''
 
 
-def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM'):
+def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM', dbase='QDhourly'):
     '''
     Given a CDF input file that contains both time and position of a satellite, 
     create magnetic field along that orbit via one of the Tsyganenko empirical
@@ -24,6 +24,9 @@ def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM'):
         Default is 'T89', or the Tsyganenko '89 model.
     coords : string
         Set the output coordinate system.  Defaults to 'GSM'.
+    dbase : string
+        Set the OMNI/QD database source for obtaining solar wind
+        and other empirical input values.  Defaults to 'QDHourly'.
 
     Returns
     =======
@@ -39,6 +42,7 @@ def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM'):
     '''
 
     from spacepy.pycdf import CDF
+    import spacepy.omni as om
     import spacepy.time as spt 
     import spacepy.coordinates as spc 
     import spacepy.irbempy as ib 
@@ -54,8 +58,15 @@ def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM'):
     time = spt.Ticktock(time, 'ISO')
     pos  = spc.Coords( pos/6371, 'GSE', 'car') # Km->Re.
 
+    # Get input solar wind and QinDenton values:
+    QD = om.get_omni(time, dbase=dbase)
+
+    # get_Bfield expects certain labels for all variables...
+    QD['dens'] = QD['Den_P']
+    QD['velo'] = QD['Vsw']
+    
     # Get b-field along orbit:
-    b_tsyg = ib.get_Bfield(time, pos, extMag=extMag)
+    b_tsyg = ib.get_Bfield(time, pos, extMag=extMag, omnivals=QD)
 
     # Convert magnetic field from GEO to GSM.
     if coords!='GEO':
@@ -80,9 +91,10 @@ if __name__ == '__main__':
     
     # Let's run a quick visual test to make sure things are working:
     # Each call uses a different Tsyganenko model.
-    time, mag_t89 = gen_sat_tsyg('sample_data/example_cluster.cdf', coords='GSE')
+    time, mag_t89 = gen_sat_tsyg('sample_data/example_cluster.cdf',
+                                 coords='GSE', dbase='qd1min')
     time, mag_t01 = gen_sat_tsyg('sample_data/example_cluster.cdf',
-                                 extMag='T01STORM', coords='GSE')
+                                 extMag='T01STORM', coords='GSE', dbase='qd1min')
 
     # Open our real data:
     data = CDF('sample_data/example_cluster.cdf')
