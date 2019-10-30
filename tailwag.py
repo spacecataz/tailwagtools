@@ -3,7 +3,84 @@
 A module for performing analysis of outflow wagging the tail.
 '''
 
+# Set install directory:
+install_dir = '/'.join(__loader__.path.split('/')[:-1])+'/'
 
+# A map of the header for a CSV info file:
+table_map = {'start':4,'end':5,'epoch':3,'kp':7,'f107':9,'cis':10,'fgm':11}
+
+def _parse_table_line(parts):
+    '''
+    Take one line from table, parse into useful objects, return a dictionary
+    of values.  Uses the "table_map" to find correct columns and map to
+    dictionary keys.
+    '''
+
+    import re
+    from dateutil.parser import parse
+
+    out = {}
+    
+    # Get times:
+    for x in ('start', 'end', 'epoch'):
+        out[x] = parse(parts[ table_map[x] ])
+
+    # Get Kp:
+    out['kp'] = float(re.search('\d\.?\d{0,3}', parts[table_map['kp']]).group())
+
+    # Get F107
+    if parts[ table_map['f107'] ]:
+        out['f107'] = float(parts[ table_map['f107'] ])
+    else:
+        out['f107'] = 0.0
+    
+    # Save file names.
+    for x in ('cis', 'fgm'):
+         out[x] = table_map[x]
+    
+    return out
+
+def parse_event_table(filename='default'):
+    '''
+    Load the table of Cluster tail passes for use in other scripts.
+    Default behavior is to read the CSV file provided with this package.
+    This can be overridden via the **filename** kwarg.
+    
+    The returned object is a list, one entry per event.  Within each entry
+    is a dictionary of useful information with the following entries:
+
+    *start* - datetime of the interval start date/time.
+    *end*   - datetime of the interval end date/time.
+    *epoch* - datetime of the central epoch of the event.
+    *kp*    - Kp value at epoch.
+    *f107*  - f107 value at epoch.
+    *cis*   - string containing name of Cluster CIS file.
+    *fgm*   - string containing name of Cluster FGM file.
+    '''
+
+    # Set file name path:
+    if filename == 'default':
+        filename=install_dir+'event_info.csv'
+
+    # Open file; slurp contents into list.
+    f = open(filename, 'r')
+    lines = f.readlines()
+    f.close()
+
+    # Get header:
+    head = lines.pop(0).split(',')
+
+    # Create data structure (list of events)
+    data = []
+
+    # Loop through lines, skipping year-only rows:
+    for l in lines:
+        parts = l.split(',')
+        if parts[0]: continue # If only year, skip.
+        data.append(_parse_table_line(parts))
+
+    return data
+    
 def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM', dbase='QDhourly'):
     '''
     Given a CDF input file that contains both time and position of a satellite, 
