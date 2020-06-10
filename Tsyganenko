@@ -1,0 +1,205 @@
+#!/usr/bin/env python
+
+'''
+A module for performing analysis of outflow wagging of the magnetotail.
+'''
+
+# Importing libraries
+import sys
+import numpy as np, scipy as sp, matplotlib.pyplot as plt
+import spacepy
+from spacepy import pycdf
+import os, glob
+from pathlib import Path
+from datetime import *
+import datetime
+from datetime import timedelta as td
+
+install_dir = os.path.join(os.path.dirname(__file__), '..')
+print(install_dir)
+
+# Mapping of a CSV file for data info
+table_map = {'start':4, 'end':5, 'epoch':3, 'kp':7, 'f107':9, 'cis':10, 'fgm':11}
+
+# Parsing the csv file
+def _parse_table(parts):
+    '''
+    Take away one line from the table, parse the data into useful objects, and return a dictionary
+    of values. Use the "table_map" to find the correct columns and map to the dictionary keys.
+    '''
+
+    import re
+    from dateutil.parser import parse
+
+    out = {}
+
+    # Gathering the times
+    for x in ('start', 'end', 'epoch'):
+        out[x] = parse(parts[table_map[x]])
+
+    # Gathering the Kp values
+    out['kp'] = float(re.search('\d\.?\d{0,3}', parts[table_map['kp']]).group())
+
+    # Gathering the F107 values
+    if parts[table_map['f107']]:
+        out['f107'] = float(parts[table_map['f107']])
+    else:
+        out['f107'] = 0.0
+
+    # Save the file
+    for x in ('cis', 'fgm'):
+        out[x] = table_map[x]
+
+    return out
+
+def parse_event_table(filename='default'):
+    '''
+        Load the table of Cluster tail passes for use in other scripts.
+        Default behavior is to read the CSV file provided with this package.
+        This can be overridden via the **filename** kwarg.
+        
+        The returned object is a list, one entry per event.  Within each entry
+        is a dictionary of useful information with the following entries:
+        
+        *start* - datetime of the interval start date/time.
+        *end*   - datetime of the interval end date/time.
+        *epoch* - datetime of the central epoch of the event.
+        *kp*    - Kp value at epoch.
+        *f107*  - f107 value at epoch.
+        *cis*   - string containing name of Cluster CIS file.
+        *fgm*   - string containing name of Cluster FGM file.
+        '''
+    
+    # Set file name path:
+    if filename == 'default':
+        filename=install_dir+'event_info.csv'
+
+    # Open file; slurp contents into list.
+    f = open(filename, 'r')
+    lines = f.readlines()
+    f.close()
+
+    # Get header:
+    head = lines.pop(0).split(',')
+    
+    # Create data structure (list of events)
+    data = []
+    
+    # Loop through lines, skipping year-only rows:
+    for l in lines:
+        parts = l.split(',')
+        if parts[0]: continue # If only year, skip.
+        data.append(_parse_table_line(parts))
+    
+    return data
+
+# Setting the directory where '*.cdf' files are located
+cdf_dir = os.chdir("Storm_Dates/New_Dates")
+
+def main():
+    menu()
+    sat_tsyg()
+
+# Menu to gather user choice about model option
+def menu():
+    print("Welcome to the Tsyganenko Data Modeling Program. This program will use an empirical model to compare to the Cluster satellite data.")
+    print()
+
+    model_list = ['T87SHORT','T87LONG','T89','T96', 'T01STORM']
+    choice = input("Please enter a model from the list: [" + ' '.join(model_list) + "] or press 'Q' to quit.\n")
+
+    if choice in model_list:
+        print("You choose the model " + choice)
+        print()
+        #def sat_tsyg(extMag)
+        
+    elif choice == 'Q' or choice == 'q':
+        print("You choose to quit. Boomer.")
+        print()
+        sys.exit()
+
+    else:
+        print("You must choose a model option from the list")
+        print("Please try again. Boomer!")
+        print()
+        menu()
+        
+    return choice
+
+# This is where we collect data from the .cdf files
+def sat_tsyg(cluster_file, extMagOption, coords='GSM', dbase='QDhourly'):
+    from spacepy.pycdf import CDF
+    import spacepy.omni as om
+    import spacepy.time as spt
+    import spacepy.coordinates as spc
+    import spacepy.irbempy as ib
+    
+    clus = CDF(cluster_file)
+    time = clus['time_tags__C1_CP_FGM_SPIN'][...]
+    pos = clus['sc_pos_xyz_gse__C1_CP_FGM_SPIN'][...]
+    
+    #print(time)
+    #print()
+    
+    time = spt.Ticktock(time, 'ISO')
+    pos = spc.Coords(pos/6371, 'GSE', 'car')
+
+    QD = om.get_omni(time,dbase=dbase)
+
+    QD['dens'] = QD['Den_P']
+    QD['velo'] = QD['Vsw']
+    
+    # Computes the magnetic field strength
+    b_tsyg = ib.get_Bfield(time, pos, extMag=extMagOption, omnivals=QD)
+    
+    if coords!='GEO':
+        b_geo = spc.Coords(b_tsyg['Bvec'],'GEO','car',ticks=time)
+        b_out = b_geo.convert(coords,'car')
+    
+    #return choice
+    return(time.UTC,b_out.data)
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    from spacepy.plot import applySmartTimeTicks, style
+    from spacepy.pycdf import CDF
+    
+    style()
+    
+    option = menu()
+
+    # A for loop is used to interate over all files with extensions ".cdf", rather than
+    # having the user go into source code and change file names after each run.
+    for filename in os.listdir(cdf_dir):
+        if filename.endswith(".cdf"):
+            
+            time, mag = sat_tsyg(filename, extMagOption = option, coords='GSE', dbase='qd1min')
+            #time, mag_t01 = sat_tsyg(filename, extMagOption='T01STORM', coords='GSE', dbase='qd1min')
+            
+            data = CDF(filename)
+            mag_cls = data['B_vec_xyz_gse__C1_CP_FGM_SPIN'][...]
+            
+            fig = plt.figure(figsize = [8,8])
+            axes = fig.subplots(3,1)
+            
+            # Plotting the .cdf files
+            for i,x in enumerate('xyz'):
+                ax = axes[i]
+                ax.plot(time, mag_cls[:,i], label='Cluser 1', lw=1.0)
+                ax.plot(time, mag[:,i], label='Choice')
+                #ax.plot(time, mag_t01[:,i], label='T01s')
+                
+                applySmartTimeTicks(ax,time,dolabel=ax==axes[-1])
+                ax.set_ylabel('B$_{}$ ($nT$)'.format(x.upper()))
+        
+            axes[0].legend(loc='best', ncol=3)
+            axes[0].set_title('Cluser vs User Choice: {}'.format(option), size=15)
+            
+            fig.tight_layout()
+            fig.savefig('Cluster.png')
+            plt.show()
+    
+        continue
+#       else:
+#continue
+main()
