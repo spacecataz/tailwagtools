@@ -12,7 +12,7 @@ one-minute resolution values -- indeed, that is the case here.
 A database of one-minute values can be [found via this URL.](https://rbsp-ect.newmexicoconsortium.org/data_pub/QinDenton/).  The keen researcher may wish to automate this effort:
 
 ```
->>> wget -r -A *.txt https://rbsp-ect.newmexicoconsortium.org/data_pub/QinDenton/
+>>> wget -r -A '*.txt' https://rbsp-ect.newmexicoconsortium.org/data_pub/QinDenton/
 ```
 
 ## Using one-minute data within Spacepy:
