@@ -4,7 +4,7 @@
 A module for performing analysis of outflow wagging of the magnetotail.
 '''
 
-# Importing libraries
+# Importing libraries BOOMER
 import sys
 import numpy as np, scipy as sp, matplotlib.pyplot as plt
 import spacepy
