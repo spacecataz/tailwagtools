@@ -24,6 +24,8 @@ Python, Numpy, Matplotlib, Scipy, and the NASA CDF library.
 |Matplotlib | 3.1.X |
 |Scipy | 1.3.X |
 |NASA CDF | >=3.6.X |
+|Pandas | 1.0.1 |
+
 
 Older versions may work, but I'm not about to test that today.
 
