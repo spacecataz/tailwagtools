@@ -21,7 +21,7 @@ from dateutil.relativedelta import relativedelta
 
 
 
-os.environ["CDF_LIB"] = "/home/doge/Research/TAILWAG/tailwagtools/CDF/lib"
+##os.environ["CDF_LIB"] = "/home/doge/Research/TAILWAG/tailwagtools/CDF/lib"
 from spacepy.pycdf import CDF
 
 path = '/home/doge/Research/TAILWAG/tailwagtools/DATA/Monthly_Data'
@@ -241,9 +241,7 @@ for (point,date, start, end, cis, fgm, CISPICK, FGMPICK) in zip(Point_List, Date
     ##maskpro = ma.masked_values(protons, -1.00000E+31)
     ##maskoxy = ma.masked_values(oxygens, -1.00000E+31)
       
-    for line in CIS_time:
-        print(line)
-        
+    
         
     
     
@@ -268,92 +266,7 @@ for (point,date, start, end, cis, fgm, CISPICK, FGMPICK) in zip(Point_List, Date
 
 
 
-        '''
-        
-        ####Creating the 4 subplots were going to need
-        ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
-        ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
-        '''
-        
-        
-        
-        
-        '''
-        ax1.plot(orb_x, orb_y)
-        ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
-                title=' X vs Y position')
-        
-        ##ax1.arrow(orb_x[half_len], orb_y[half_len], orb_x[half_len + 1] - orb_x[half_len], orb_y[half_len + 1] - orb_y[half_len], shape='full', lw=.1, length_includes_head=True, head_width=.1)
-        ##axa = fig.add_subplot(111)
-        ##add_planet(axa)
-        
-        
-        
-        
-        
-        ax2.plot(orb_x, orb_z)
-        ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
-                title=' X vs Z position')
-        ##ax2.arrow(orb_x[half_len], orb_z[half_len], orb_x[half_len + 1] - orb_x[half_len], orb_z[half_len + 1] - orb_z[half_len], shape='full', lw=.1, length_includes_head=True, head_width=.1)
-        ##ax2 = fig.add_subplot(322)
-        ##add_planet(ax2)
-        
-        
-        
-        
-        
-        ax3.plot(FGM_time, Bx)        
-        ax3.set(xlabel='time', ylabel='$B_X$ in nT',
-                title='$B_X$ Magnitude')
-        ax3.set_xlim([start_Time, end_Time])
-        ax3.hlines(0, FGM_time[0], FGM_time[-1], lw=2, color='black', linestyle = '--')
-        applySmartTimeTicks(ax3, [start_Time, end_Time])
-        
-        
-        ax4.set_xlabel('time')
-        ax4.set_title('Proton and Oxygen Densities')
-        
-        ax4.plot(CIS_time, maskoxy, 'g-', lw=1, alpha=0.7)
-        ax4.set_ylabel('Oxygen per $cm^{3}$')        
-        ax4.set_xlim([start_Time, end_Time])
-        ax4.grid(b = None, which='major', axis='both')
-        applySmartTimeTicks(ax4, [start_Time, end_Time])  ##spacepy.add_planet(ax1)
-        ##spacepy.add_planet(ax2)https://www.howtoforge.com/how-to-install-microsoft-teams-linux-on-ubuntu-and-centos/
-        
-        
-        
-        #### Here we have a 5th plot but its going to be on the 4th subplot so were good fam
-        ax5 = ax4.twinx()
-          
-        ax5.plot(CIS_time, maskpro, color = 'r', lw=1)
-        ax5.set_ylabel('Protons per $cm^{3}$')          
-        ax5.set_xlim([start_Time, end_Time])
-                
-        ax5.grid(b = None, which='major', axis='both')
-        applySmartTimeTicks(ax4, [start_Time, end_Time])
-        
-        
-        
-        ##### With these 2 blocks were adding planet earth to our postion graphs
-        ax1 = fig.add_subplot(321)
-        ##ax2 = fig.add_subplot(322)
-       
-        ##spacepy.pybats.add_planet(ax1)
-        ##spacepy.pybats.add_planet(ax2)
-        
-        
-        
-        #### Here were making sure everything stays nice and cool looking
-        plt.tight_layout(rect=[0, 0, 1, .95])
-        plt.show()
-        
-        
-        ####  HERE WERE SAVING THE GRAPHS TO A FOLDER AND GIVING THE FILE A TITLE THAT HAVE THE DATE
-        #####  AND THE INTERVAL HOURS USED
-        #### Probably want to give the files a better name than me        
-        fig.savefig("/home/doge/Research/TAILWAG/tailwagtools/Output_Folder/*""The graph for " +  Title + " with interval hours_ " +  str(n) + ".jpg")  
-        '''
-        
+    
         
         
 print("GAME OVER, THE USER WINS")
