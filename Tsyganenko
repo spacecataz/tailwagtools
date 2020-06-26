@@ -15,6 +15,9 @@ from datetime import *
 import datetime
 from datetime import timedelta as td
 
+##os.environ["CDF_LIB"] = "/home/doge/Research/TAILWAG/tailwagtools/CDF/lib"
+from spacepy.pycdf import CDF
+
 install_dir = os.path.join(os.path.dirname(__file__), '..')
 print(install_dir)
 
