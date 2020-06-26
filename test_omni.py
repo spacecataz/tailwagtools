@@ -22,7 +22,7 @@ ticks = time.Ticktock(t, 'ISO')
 # Fetch hour-level omni:
 om1 = omni.get_omni(ticks)
 
-# Fetc minute-level omni:
+# Fetch minute-level omni:
 om2 = omni.get_omni(ticks, dbase='qd1min')
 
 # Compare hour- to minute-resolution data:
