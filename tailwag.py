@@ -19,6 +19,8 @@ def _parse_table_line(parts):
     import re
     from dateutil.parser import parse
 
+    raise DepreciationWarning('This function is no longer useful.')
+    
     out = {}
     
     # Get times:
@@ -57,6 +59,8 @@ def parse_event_table(filename='default'):
     *cis*   - string containing name of Cluster CIS file.
     *fgm*   - string containing name of Cluster FGM file.
     '''
+
+    raise DepreciationWarning('This function is no longer useful.')
 
     # Set file name path:
     if filename == 'default':
@@ -155,6 +159,150 @@ def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM', dbase='QDhourly'):
     return(time.UTC, b_out.data)
 
 
+def get_cluster_filename(epoch, sat=1):
+    '''
+    Given an epoch, return the CIS and FGM Cluster files that contain the
+    data associated with that event.
+
+    Defaults to Cluster 1 spacecraft, use *sat* kwarg to change.
+
+    
+    Parameters
+    ----------
+    epoch : datetime.datetime
+         A datetime object corresponding to the time of interest.
+
+    Other Parameters
+    ----------------
+    sat : int
+        The number, 1-4, indicating which satellite to use.
+
+    Returns
+    -------
+    A two element tuple containing the FGM and CIS filenames in that order.
+
+    '''
+
+    from glob import glob
+
+    # Build path to folder with data:
+    path = install_dir + '/DATA/Monthly_Data/'
+
+    # Search for FGM file; stop kindly if not found:
+    try:
+        fgm=glob(path+f'c{sat}_cps_fgm_spin_{epoch:%Y%m}*_{epoch:%Y%m}*.cdf')[0]
+    except IndexError:
+        raise FileNotFoundError('No matching FGM file for this time.')
+
+    # Search for CIS file; stop kindly if not found:
+    try:
+        cis=glob(path+f'c{sat}_pps_cis_{epoch:%Y%m}*_{epoch:%Y%m}*.cdf')[0]
+    except IndexError:
+        raise FileNotFoundError('No matching FGM file for this time.')
+
+    return (fgm, cis)
+
+    
+def fetch_cluster_data(epoch, sat=1, tspan=12, debug=False):
+    '''
+    For a given *epoch* and time span, *tspan*, about *epoch*, open and
+    re-organize data from Cluster CIS and FGM files into a ready-to-use 
+    dictionary.
+
+    The key-value pairs inside the returned dictionary are described below.
+    Note that there are two time vectors as the CIS and FGM data report
+    at different cadences.
+
+    | Key      | Value                                             |
+    |----------|---------------------------------------------------|
+    |time_fgm  | Array of datetimes for the FGM data.              |
+    |time_cis  | Array of datetimes for the CIS data.              |
+    |dens_h    |
+    |dens_o    |
+    |v_h       |
+    |b         |
+    |xyz       |
+
+    Parameters
+    ----------
+    epoch : datetime.datetime
+         A datetime object corresponding to the central time of interest.
+
+    Other Parameters
+    ----------------
+    tspan : int
+        Time span to cover, in hours.  Data returned will always include
+        epoch +/- tspan.
+    sat : int
+        The number, 1-4, indicating which satellite to use.
+    debug : bool
+        Turn on verbose debug info.
+
+    Returns
+    -------
+    data : dict
+        A dictionary of values pulled from the Cluster CDFs.  Values 
+        are described above.
+
+    '''
+    
+    import datetime as dt
+    import numpy as np
+    from spacepy.pycdf import CDF
+    
+    # Convert tspan to a timedelta:
+    tspan = dt.timedelta(hours=tspan)
+    
+    # Start by grabbing file names.  If epoch+/-tspan crosses the month
+    # boundary, add more files.
+    fgm_files, cis_files = [], []
+    for t in [epoch-tspan, epoch, epoch+tspan]:
+        fgm, cis = get_cluster_filename(t, sat=sat)
+        # Only add files if the name is unique in the list:
+        if fgm not in fgm_files:
+            fgm_files.append(fgm)
+            cis_files.append(cis)
+
+    if debug:
+        print(f'Found {len(fgm_files)} FGM and {len(cis_files)} CIS files')
+        print('Data files located: ')
+        for f, c in zip(fgm_files,cis_files):
+           print(f'\t{f}\n\t{c}\n')
+
+    # Based on satellite number, build variable maps:
+    cis_map = {'cis_time':f'Epoch__C{sat}_PP_CIS',
+               'dens_h'  :f'N_p__C{sat}_PP_CIS',
+               'dens_o'  :f'N_O1__C{sat}_PP_CIS',
+               'v_h'     :f'V_p_xyz_gse__C{sat}_PP_CIS'}
+    fgm_map = {'fgm_time':f'time_tags__C{sat}_CP_FGM_SPIN',
+               'xyz':f'sc_pos_xyz_gse__C{sat}_CP_FGM_SPIN',
+               'b'  :f'B_vec_xyz_gse__C{sat}_CP_FGM_SPIN'}
+        
+    # Build empty data container:
+    data = {} # Empty dict
+    allkeys = list(cis_map.keys())+list(fgm_map.keys())
+    for k in allkeys:
+        # Create empty numpy arrays for each variable:
+        dtype = object if 'time' in k else None
+        data[k] = np.zeros(0,dtype=dtype)
+
+    # Load data into containers:
+    for f, c in zip(fgm_files, cis_files):
+        # Open CDF files:
+        fgm=CDF(f)
+        cis=CDF(c)
+        # Append data to data container:
+        for k in cis_map:
+            data[k] = np.append(data[k],cis[cis_map[k]][...])
+        for k in fgm_map:
+            data[k] = np.append(data[k],fgm[fgm_map[k]][...])
+
+    # Reshape 3D data that got flattened on append:
+    for k in ['xyz', 'b', 'v_h']:
+        data[k] = data[k].reshape( ( int(data[k].size/3), 3) )
+            
+    return data
+    
 # This next block only executes if the code is run as a
 # script and not a module (e.g., "run tailway" vs. "import tailwag").
 if __name__ == '__main__':
