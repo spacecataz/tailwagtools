@@ -215,8 +215,8 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, debug=False):
 
     | Key      | Value                                             |
     |----------|---------------------------------------------------|
-    |time_fgm  | Array of datetimes for the FGM data.              |
-    |time_cis  | Array of datetimes for the CIS data.              |
+    |fgm_time  | Array of datetimes for the FGM data.              |
+    |cis_time  | Array of datetimes for the CIS data.              |
     |dens_h    |
     |dens_o    |
     |v_h       |
