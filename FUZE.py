@@ -1,12 +1,3 @@
-
-
-
-        
-
-
-
-    
-
 ##### HERE WERE DOING IMPORTS
 import datetime as dt
 from datetime import datetime
@@ -15,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 import glob
 import matplotlib
 from matplotlib import pyplot as plt
+from matplotlib.collections import LineCollection
 import numpy as np
 import numpy.ma as ma
 import os
@@ -23,189 +15,247 @@ import scipy
 import scipy.signal
 import spacepy
 from spacepy.pycdf import CDF
-import tailwag as tw
-
 from spacepy.plot import applySmartTimeTicks, style
-
 from spacepy import omni, time
 from spacepy import pybats
+import spacepy.plot
+from spacepy.plot import add_arrows
+import sys
+import tailwag as tw
+import spacepy.irbempy as ib
+import spacepy.time as spt
+import spacepy.coordinates as spc
+#######################################################################################
 
+
+##############################################
+##     __  __                          
+##    |  \/  |   ___   _ __    _   _   
+##    | |\/| |  / _ \ | '_ \  | | | |  
+##    | |  | | |  __/ | | | | | |_| |  
+##    |_|  |_|  \___| |_| |_|  \__,_|  
+##                                  
+########################################
+
+
+# Menu to gather user choice about model option
+def menu():
+    print("Hello there, I want to play a game......\n")
     
-###################################################################################   
-print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
 
+    model_list = ['T87SHORT','T87LONG','T89','T96', 'T01STORM']
+    choice = input("Please enter a model from the list: [" + ' '.join(model_list) + "] or press 'Q' to quit.\n")
 
-##### READ THE DATA FROM THE EXCEL FILE
-Event_Data = pd.read_excel("Event_Points.xlsx", header = 0)
-
-for line in Event_Data:
-    print(line)
-
-    
+    if choice in model_list:
+        print("You choose the model " + choice)
+        print()
        
-##### HERE WE GRAB THE DATA THAT WERE GOING TO NEED FROM THE EXCEL COLUMNS 
-##### The first two lines grab the dates and convert them to datetime objects
-##### The last two lines grab the used cluster satellites
-Point_List = Event_Data['Narrowed Point']
-Date_List = [dt.datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f') for date in Point_List]
-Sat_List = Event_Data['USED SAT']
-
-
-
-## Print Statements to check the var types in the arrays:
-## Date list is datetime.datetime, point list is string
-## CIS and FGM are both int 
-'''
-for (a,b, c) in zip(Date_List, Sat_List):
-
-    print(type(a), type(b)    
-''' 
         
+    elif choice == 'Q' or choice == 'q':
+        print("You choose to quit. Boomer.")
+        print()
+        sys.exit()
 
-
+    else:
+        print("You must choose a model option from the list")
+        print("Please try again. Boomer!")
+        print()
+        menu()
+        
+    return choice
+###################################################################################   
     
-        
-print("We are now starting to for loop to iterate through the Date_List array: \n")
 
-### This loop will go through datimes in the excel file and grab the satellite
-### and satellite that we will pull data from
-for (a, b, c) in zip(Date_List, Sat_List, Point_List):
+
+
+
+def main():
+    print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
+    
+    #####  grabbing the model choice to be used
+    choice = menu()
+    ####  Print Statement to check the chosen model type
+    print (" and now were outisde of the menu function and the choice is:   " + choice + "\n\n")
+    
+    
+    ####  swiping the event points from the excel file that were gonna use
+    Event_Data = pd.read_excel("Event_Points.xlsx", header = 0)
+
+
+    ####  getting three arrays: Points as strings, points as datetimes, and the used cluster satellite
+    Point_List = Event_Data['Narrowed Point']
+    Date_List = [dt.datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f') for date in Point_List]
+    Sat_List = Event_Data['USED SAT']
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for (a, b, c) in zip(Date_List, Sat_List, Point_List):
     ###  Print to see which date we are currently using
-    print(a)
-    
-    #### get all of the stuff from these cluster satellites and turn it into a dicrtionary
-    #### a feeds the date, b feeds the satellite integer
-    #### 12 is a time interval on each side of the used date
-    Data_Dict = tw.fetch_cluster_data(a, b, 12)
+        print("Entering the for loop with the following event date: " + c + "\n\n")
     
     
+    
+        #####   Here were grabbing our cluster data that we will need for this event
+        #####   If we need several months the function will swipe that shit so dont worry boomer
+        #####   change that last number to be the amount of hours you want on each side of your interval
+        Data_Dict = tw.fetch_cluster_data(a, b, 12)
+        
+        
+        '''
+        time = Data_Dict['fgm_time']
+        pos = Data_Dict['xyz']
+        
+        # Convert to ticktocks:
+        ticks = spt.Ticktock(time, 'ISO')
+        
+        pos = spc.Coords(pos/6371, 'GSE', 'car')
+        
+        # Fetch minute-level omni:
+        omni_data = omni.get_omni(ticks, dbase='qd1min') 
+            
+        
+        # Computes the magnetic field strength
+        ##b_tsyg = ib.get_Bfield(ticks, pos, extMag=choice, omnivals=omni_data)
+        ''' 
 
-    
-    
-    ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
-    for n in range(2, 13, 2):
-    
-    
-    
-    
-    
-  
-        ####  Set up start and stop times so that we can narrow our data down early
-        start_Time = a - timedelta(hours = n)
-        end_Time   = a + timedelta(hours = n)
-    
-        
-        
-        
-    
-    
+
+        ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
+        for n in range(2, 13, 2):
+            ####  Set up start and stop times so that we can narrow our data down early
+            start_Time = a - timedelta(hours = n)
+            end_Time   = a + timedelta(hours = n)
+            #### Set up a filter to narrow down the stuff from the massive dictionary 
+            #### That we just made
+            filter1 = (Data_Dict['cis_time']>=start_Time) & (Data_Dict['cis_time']<=end_Time)    
+            CIS_time = Data_Dict['cis_time'][filter1]
+            maskpro = ma.masked_values(scipy.signal.medfilt(Data_Dict['dens_h'][filter1], kernel_size = 15), -1.00000E+31)
+            maskoxy = ma.masked_values(scipy.signal.medfilt(Data_Dict['dens_o'][filter1], kernel_size = 15), -1.00000E+31)
+            
+            filter2 = (Data_Dict['fgm_time']>=start_Time) & (Data_Dict['fgm_time']<=end_Time)
+            FGM_time = Data_Dict['fgm_time'][filter2]
+            Bx = ma.masked_values(scipy.signal.medfilt(Data_Dict['b'][filter2,0], kernel_size = 7), -1.00000E+31)
+            x = Data_Dict['xyz'][filter2,0]/6378.16
+            y = Data_Dict['xyz'][filter2,1]/6378.16
+            z = Data_Dict['xyz'][filter2,2]/6378.16
+
      
 
-        #### Set up a filter to narrow down the stuff from the massive dictionary 
-        #### That we just made
-        filter1 = (Data_Dict['cis_time']>=start_Time) & (Data_Dict['cis_time']<=end_Time)    
-        CIS_time = Data_Dict['cis_time'][filter1]
-        maskpro = ma.masked_values(scipy.signal.medfilt(Data_Dict['dens_h'][filter1], kernel_size = 11), -1.00000E+31)
-        maskoxy = ma.masked_values(scipy.signal.medfilt(Data_Dict['dens_o'][filter1], kernel_size = 11), -1.00000E+31)
-    
-    
-    
-        #### 
-        filter2 = (Data_Dict['fgm_time']>=start_Time) & (Data_Dict['fgm_time']<=end_Time)
-        FGM_time = Data_Dict['fgm_time'][filter2]
-        Bx = Data_Dict['b'][filter2,0]
-        x = Data_Dict['xyz'][filter2,0]/6378.16
-        y = Data_Dict['xyz'][filter2,1]/6378.16
-        z = Data_Dict['xyz'][filter2,2]/6378.16
-    
-    
-   
-        # Convert to ticktocks:
-        ticks = time.Ticktock(FGM_time, 'ISO')
-       # Fetch minute-level omni:
-        omni_data = omni.get_omni(ticks, dbase='qd1min') 
+            print("The length of the FGM array is:   " + str(len(FGM_time)) + "\n")
+            print("The length of half FGM array is:   " + str(round(len(FGM_time)/2)) + "\n")
+
+            ind_x = x[round(len(FGM_time)/2)]
+            ind_y = y[round(len(FGM_time)/2)]
+            ind_z = z[round(len(FGM_time)/2)]
         
-        for thing in omni_data:
-            print(thing)
-        
-      
-        
+            print("The ind_x is:   " + str(ind_x) + "\n")
+            print("The ind_y is:   " + str(ind_y) + "\n")
+            
+            
+            
+         
+            
+             
+
 ###################################################################################
 #                          PLOTTING SECTION
 ###################################################################################
         
-        fig = plt.figure(figsize=(8.5,11))
-        fig.suptitle(c + " with interval hours: " +  str(n), fontsize=16)
+            fig = plt.figure(figsize=(8.5,11))
+            fig.suptitle(c + " with interval hours: " +  str(n), fontsize=16)
         
         
-        ####Creating the 4 subplots were going to need
-        ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
-        ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
+            ####Creating the 4 subplots were going to need
+            ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
+            ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
         
-        ax1.plot(x, y)
-        ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
-                title=' X vs Y position')
+            line1 = ax1.plot(x, y)
+            add_arrows(line1, n = 5, size = 18, style = '->')
+        
+       
+            ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
+                    title=' X vs Y position')
+            ax1.annotate('Cross', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y), arrowprops=dict(arrowstyle="->",
+                    connectionstyle="arc3"),)  
             
-        ax2.plot(x, z)
-        ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
-                title=' X vs Z position')
+        
+            line2 = ax2.plot(x, z)
+            ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
+                    title=' X vs Z position')
+            add_arrows(line2, n = 5, size = 18, style = '->')
+            ax2.annotate('Cross', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z), arrowprops=dict(arrowstyle="->",
+                    connectionstyle="arc3"),) 
     
-        ax3.plot(FGM_time, Bx)        
-        ax3.set(xlabel='time', ylabel='$B_X$ in nT',
-                title='$B_X$ Magnitude')
+    
+            ax3.plot(FGM_time, Bx, lw = .5)        
+            ax3.set(xlabel='time', ylabel='$B_X$ in nT',
+                    title='$B_X$ Magnitude')
         ##ax3.set_xlim([start_Time, end_Time])
-        ax3.hlines(0, FGM_time[0], FGM_time[-1], lw=2, color='black', linestyle = '--')
-        applySmartTimeTicks(ax3, [start_Time, end_Time])
-        
-        ##ax3b = ax3.twinx()
-        ##ax3b.plot(FGM_time, omni_data, color = 'r', lw=1)
-        ##ax3b.set_ylabel('Protons per $cm^{3}$')          
-        ##ax3b.set_xlim([start_Time, end_Time])          
-       ## ax3b.grid(b = None, which='major', axis='both')
-        
-        
-        ax4.set_xlabel('time')
-        ax4.set_title('Proton and Oxygen Densities')
-        
-        ax4.plot(CIS_time, maskoxy, 'g-', lw=1, alpha=0.7)
-        ax4.set_ylabel('Oxygen per $cm^{3}$')        
-        ax4.set_xlim([start_Time, end_Time])
-        ax4.grid(b = None, which='major', axis='both')
-        applySmartTimeTicks(ax4, [start_Time, end_Time])  
+            ax3.hlines(0, FGM_time[0], FGM_time[-1], lw=1, color='black', linestyle = '--')
+            ax3.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
+            applySmartTimeTicks(ax3, [start_Time, end_Time])
         
         
         
-        #### Here we have a 5th plot but its going to be on the 4th subplot so were good fam
-        ax5 = ax4.twinx()
-          
-        ax5.plot(CIS_time, maskpro, color = 'r', lw=1)
-        ax5.set_ylabel('Protons per $cm^{3}$')          
-        ax5.set_xlim([start_Time, end_Time])
-                
-        ax5.grid(b = None, which='major', axis='both')
+       
+        
+            ax4.set_xlabel('time')
+            ax4.set_title('Proton and Oxygen Densities')
+        
+            ax4.plot(CIS_time, maskoxy, color = 'g', lw = .5, alpha=0.7)
+            ax4.set_ylabel('Oxygen per $cm^{3}$', color = 'g')        
+       ## ax4.set_xlim([start_Time, end_Time])
+            ax4.grid(b = None, which='major', axis='both', color = 'g', alpha= 0.2, linestyle = '--')
+            applySmartTimeTicks(ax4, [start_Time, end_Time])  
+            ax4.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
+        
+        
+        
+     
+            ax5 = ax4.twinx()         
+            ax5.plot(CIS_time, maskpro, color = 'r', lw=.5)
+            ax5.set_ylabel('Protons per $cm^{3}$', color = 'r')          
+        ##ax5.set_xlim([start_Time, end_Time])               
+            ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
     
         
         
         
         ##### With these 2 blocks were adding planet earth to our postion graphs
-        ax1 = fig.add_subplot(321)
-        ax2 = fig.add_subplot(322)
+            ax1 = fig.add_subplot(321)
+            ax2 = fig.add_subplot(322)
        
-        spacepy.pybats.add_planet(ax1)
-        spacepy.pybats.add_planet(ax2)
+            spacepy.pybats.add_planet(ax1)
+            spacepy.pybats.add_planet(ax2)
+        
+           
         
         
         
         #### Here were making sure everything stays nice and cool looking
-        plt.tight_layout(rect=[0, 0, 1, .95])
-        plt.show()
+            plt.tight_layout(rect=[0, 0, 1, .95])
+            plt.show()
         
         
         ####  HERE WERE SAVING THE GRAPHS TO A FOLDER AND GIVING THE FILE A TITLE THAT HAVE THE DATE
         #####  AND THE INTERVAL HOURS USED
         #### Probably want to give the files a better name than me        
-        fig.savefig("/home/doge/Research/TAILWAG/tailwagtools/Output/*" + c + " with interval hours: " +  str(n)+ ".jpg") 
-   
+            fig.savefig("Output/*" + c + " with interval hours: " +  str(n)+ ".jpg") 
+
+
+
+
+
+main()  
 
    
     
@@ -217,7 +267,7 @@ for (a, b, c) in zip(Date_List, Sat_List, Point_List):
     
    
    
-print("GAME OVER, THE USER WINS")
+
     
         
         
