@@ -85,16 +85,19 @@ def parse_event_table(filename='default'):
 
     return data
     
-def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM', dbase='QDhourly'):
+def gen_sat_tsyg(cluster_data, extMag='T89', dbase='qd1min'):
     '''
-    Given a CDF input file that contains both time and position of a satellite, 
-    create magnetic field along that orbit via one of the Tsyganenko empirical
-    models.
+    Given a cluster data dict that contains both time and position of a 
+    satellite, create magnetic field along that orbit via one of the 
+    Tsyganenko empirical models.
+
+    The time range, coordinate system, and other details are pulled 
+    automatically from the input data dictionary.
 
     Parameters
     ==========
-    cluster_file : string
-        Path of CDF-formatted cluster input file with orbit location.
+    cluster_file : dictionary
+        A dictionary of cluster values from fetch_cluster_data.
 
     Other Parameters
     ================
@@ -103,8 +106,6 @@ def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM', dbase='QDhourly'):
         documentation for 
         [Spacepy's ONERA interface](https://pythonhosted.org/SpacePy/autosummary/spacepy.irbempy.get_Bfield.html)
         Default is 'T89', or the Tsyganenko '89 model.
-    coords : string
-        Set the output coordinate system.  Defaults to 'GSM'.
     dbase : string
         Set the OMNI/QD database source for obtaining solar wind
         and other empirical input values.  Defaults to 'QDHourly'.
@@ -117,27 +118,24 @@ def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM', dbase='QDhourly'):
         A nTime-by-3 array of the magnetic field data.
 
     OPEN QUESTIONS/TO-DO
-    -high-resolution OMNI.
+
     -verification of results- compare to CCMC test?
     
     '''
 
+    import numpy as np
+    
     from spacepy.pycdf import CDF
     import spacepy.omni as om
     import spacepy.time as spt 
     import spacepy.coordinates as spc 
     import spacepy.irbempy as ib 
 
-    # Open CDF file, get required variables:
-    clus = CDF(cluster_file)
-    time = clus['time_tags__C1_CP_FGM_SPIN'][...]      # Extract time
-    pos  = clus['sc_pos_xyz_gse__C1_CP_FGM_SPIN'][...] # Extract orbit as nTime x 3D array.
-
     # Convert CDF values to spacepy-specific classes.
     # These enable coordinate transforms and are required for
     # the ONERA interface.
-    time = spt.Ticktock(time, 'ISO')
-    pos  = spc.Coords( pos/6371, 'GSE', 'car') # Km->Re.
+    time = spt.Ticktock(cluster_data['fgm_time'], 'ISO')
+    pos  = spc.Coords( cluster_data['xyz'], cluster_data['coords'], 'car')
 
     # Get input solar wind and QinDenton values:
     QD = om.get_omni(time, dbase=dbase)
@@ -145,14 +143,25 @@ def gen_sat_tsyg(cluster_file, extMag='T89', coords='GSM', dbase='QDhourly'):
     # get_Bfield expects certain labels for all variables...
     QD['dens'] = QD['Den_P']
     QD['velo'] = QD['Vsw']
-    
-    # Get b-field along orbit:
-    b_tsyg = ib.get_Bfield(time, pos, extMag=extMag, omnivals=QD)
 
+    # NOTE: Irbem has a hard limit of 100,000 points.  We frequently
+    # exceed that.  We have to build new data containers and loop over
+    # points to prevent problems.
+    npts, nTimeMax = len(time), 100000
+    b_tsyg = np.zeros((npts,3))
+    
+    # Get b-field along orbit, repeating as required to overcome
+    # limits of Irbemlib.
+    for i in range(0,npts,nTimeMax):
+        iStop = min(npts, i+nTimeMax)
+        b_now = ib.get_Bfield(time[i:iStop], pos[i:iStop],
+                              extMag=extMag, omnivals=QD)
+        b_tsyg[i:iStop,:] = b_now['Bvec']
+        
     # Convert magnetic field from GEO to GSM.
-    if coords!='GEO':
-        b_geo = spc.Coords( b_tsyg['Bvec'], 'GEO', 'car', ticks=time)
-        b_out = b_geo.convert(coords, 'car')
+    if cluster_data['coords']!='GEO':
+        b_geo = spc.Coords( b_tsyg, 'GEO', 'car', ticks=time)
+        b_out = b_geo.convert(cluster_data['coords'], 'car')
 
     # Return time and b-field data.  Strip away extraneous information
     # added by spacepy (via .UTC and .data, which give values only.)
@@ -203,7 +212,8 @@ def get_cluster_filename(epoch, sat=1):
     return (fgm, cis)
 
     
-def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7, debug=False):
+def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
+                       coords='GSM', debug=False):
     '''
     For a given *epoch* and time span, *tspan*, about *epoch*, open and
     re-organize data from Cluster CIS and FGM files into a ready-to-use 
@@ -218,10 +228,10 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7, debug=False):
     |fgm_time  | Array of datetimes for the FGM data.              |
     |cis_time  | Array of datetimes for the CIS data.              |
     |dens_h    | Array of density values, protons only.            |
-    |dens_o    |
-    |v_h       |
-    |b         |
-    |xyz       |
+    |dens_o    | Array of density values, oxygen ions only.        |
+    |v_h       | 3D velocity of cold protons DO NOT USE YET.       |
+    |b         | An Nx3 array of Bx, By, Bz values                 |
+    |xyz       | An Nx3 array of the spacecraft's location         |
 
     Parameters
     ----------
@@ -238,6 +248,8 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7, debug=False):
     kernel_size : int
         Size of median filter window size for smoothing density data.
         MUST be a ODD NUMBER.
+    coords : str
+        Set the output coordinate system, defaults to GSM.
     debug : bool
         Turn on verbose debug info.
 
@@ -253,6 +265,8 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7, debug=False):
     import numpy as np
     from spacepy.pycdf import CDF
     from scipy.signal import medfilt
+    import spacepy.time as spt 
+    import spacepy.coordinates as spc
     
     # Convert tspan to a timedelta:
     tspan = dt.timedelta(hours=tspan)
@@ -317,6 +331,18 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7, debug=False):
         cis[cis_map['dens_o']].attrs['FILLVAL'])
     data['b' ] = np.ma.masked_values(data['b'],
                                      fgm[fgm_map['b']].attrs['FILLVAL'])
+
+    # Coordinate transformations!
+    # Start with time as ticktock object, values as coords objects:
+    time = spt.Ticktock(data['fgm_time'], 'ISO')
+    xyz  = spc.Coords( data['xyz'], 'GSE', 'car', ticks=time)
+    b    = spc.Coords( data['b'],   'GSE', 'car', ticks=time)
+    # Now, rotate:
+    data['xyz'] = xyz.convert(coords, 'car').data
+    data['b'  ] = b.convert(  coords, 'car').data
+
+    # Store the coordinate system we are using:
+    data['coords'] = coords
     
     return data
     

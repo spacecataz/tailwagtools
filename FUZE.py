@@ -118,7 +118,9 @@ def main():
         ##b_tsyg = ib.get_Bfield(ticks, pos, extMag=choice, omnivals=omni_data)
         ''' 
 
-
+        # FETCH TSYG DATA HERE!
+        #time_t89, b_t89 = ....
+        
         ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
         for n in range(2, 13, 2):
             ####  Set up start and stop times so that we can narrow our data down early
@@ -138,7 +140,7 @@ def main():
             y = Data_Dict['xyz'][filter2,1]
             z = Data_Dict['xyz'][filter2,2]
 
-     
+            # FILTER TSYG DATA HERE.
 
             print("The length of the FGM array is:   " + str(len(FGM_time)) + "\n")
             print("The length of half FGM array is:   " + str(round(len(FGM_time)/2)) + "\n")
