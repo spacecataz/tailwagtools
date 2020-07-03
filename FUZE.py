@@ -1,32 +1,37 @@
 ##### HERE WERE DOING IMPORTS
+import os
+import sys
+import glob
 import datetime as dt
 from datetime import datetime
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
-import glob
+
 import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 import numpy as np
 import numpy.ma as ma
-import os
 import pandas as pd
 import scipy
 import scipy.signal
 import spacepy
 from spacepy.pycdf import CDF
 from spacepy.plot import applySmartTimeTicks, style
-from spacepy import omni, time
+from spacepy import omni, time, pybats
 from spacepy import pybats
 import spacepy.plot
 from spacepy.plot import add_arrows
-import sys
-import tailwag as tw
 import spacepy.irbempy as ib
 import spacepy.time as spt
 import spacepy.coordinates as spc
+import tailwag as tw
 #######################################################################################
 
+#### Prepare to plot:
+# Create an output directory:
+outdir = 'fuze_plots/'
+if not os.path.exists(outdir): os.mkdir(outdir)
 
 ##############################################
 ##     __  __                          
@@ -64,10 +69,6 @@ def menu():
         
     return choice
 ###################################################################################   
-    
-
-
-
 
 def main():
     print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
@@ -84,19 +85,8 @@ def main():
 
     ####  getting three arrays: Points as strings, points as datetimes, and the used cluster satellite
     Point_List = Event_Data['Narrowed Point']
-    Date_List = [dt.datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f') for date in Point_List]
-    Sat_List = Event_Data['USED SAT']
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f') for date in Point_List]
+    Sat_List   = Event_Data['USED SAT']
     
     
     for (a, b, c) in zip(Date_List, Sat_List, Point_List):
@@ -138,15 +128,15 @@ def main():
             #### That we just made
             filter1 = (Data_Dict['cis_time']>=start_Time) & (Data_Dict['cis_time']<=end_Time)    
             CIS_time = Data_Dict['cis_time'][filter1]
-            maskpro = ma.masked_values(scipy.signal.medfilt(Data_Dict['dens_h'][filter1], kernel_size = 15), -1.00000E+31)
-            maskoxy = ma.masked_values(scipy.signal.medfilt(Data_Dict['dens_o'][filter1], kernel_size = 15), -1.00000E+31)
+            maskpro = Data_Dict['dens_h'][filter1]
+            maskoxy = Data_Dict['dens_o'][filter1]
             
             filter2 = (Data_Dict['fgm_time']>=start_Time) & (Data_Dict['fgm_time']<=end_Time)
             FGM_time = Data_Dict['fgm_time'][filter2]
-            Bx = ma.masked_values(scipy.signal.medfilt(Data_Dict['b'][filter2,0], kernel_size = 7), -1.00000E+31)
-            x = Data_Dict['xyz'][filter2,0]/6378.16
-            y = Data_Dict['xyz'][filter2,1]/6378.16
-            z = Data_Dict['xyz'][filter2,2]/6378.16
+            Bx = Data_Dict['b'][filter2,0]
+            x = Data_Dict['xyz'][filter2,0]
+            y = Data_Dict['xyz'][filter2,1]
+            z = Data_Dict['xyz'][filter2,2]
 
      
 
@@ -159,10 +149,6 @@ def main():
         
             print("The ind_x is:   " + str(ind_x) + "\n")
             print("The ind_y is:   " + str(ind_y) + "\n")
-            
-            
-            
-         
             
              
 
@@ -177,119 +163,72 @@ def main():
             ####Creating the 4 subplots were going to need
             ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
             ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
-        
+
+            # Axes 1: Orbit in x-y plane:
             line1 = ax1.plot(x, y)
             add_arrows(line1, n = 5, size = 18, style = '->')
         
-       
             ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
                     title=' X vs Y position')
-            ax1.annotate('Cross', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y), arrowprops=dict(arrowstyle="->",
-                    connectionstyle="arc3"),)  
+            ax1.annotate('Cross', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
+                         arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)  
             
-        
+            # Axes 2: Orbit in x-z plane:
             line2 = ax2.plot(x, z)
             ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
                     title=' X vs Z position')
             add_arrows(line2, n = 5, size = 18, style = '->')
-            ax2.annotate('Cross', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z), arrowprops=dict(arrowstyle="->",
-                    connectionstyle="arc3"),) 
+            ax2.annotate('Cross', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
+                         arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),) 
     
-    
+            # Axes 3: Magnetic field x-component:
             ax3.plot(FGM_time, Bx, lw = .5)        
             ax3.set(xlabel='time', ylabel='$B_X$ in nT',
                     title='$B_X$ Magnitude')
-        ##ax3.set_xlim([start_Time, end_Time])
+            ##ax3.set_xlim([start_Time, end_Time])
             ax3.hlines(0, FGM_time[0], FGM_time[-1], lw=1, color='black', linestyle = '--')
             ax3.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
             applySmartTimeTicks(ax3, [start_Time, end_Time])
-        
-        
-        
        
-        
+            # Axes 4: Composition - Oxygen
             ax4.set_xlabel('time')
             ax4.set_title('Proton and Oxygen Densities')
         
             ax4.plot(CIS_time, maskoxy, color = 'g', lw = .5, alpha=0.7)
             ax4.set_ylabel('Oxygen per $cm^{3}$', color = 'g')        
-       ## ax4.set_xlim([start_Time, end_Time])
+            ## ax4.set_xlim([start_Time, end_Time])
             ax4.grid(b = None, which='major', axis='both', color = 'g', alpha= 0.2, linestyle = '--')
-            applySmartTimeTicks(ax4, [start_Time, end_Time])  
             ax4.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
-        
-        
-        
-     
+
+            # Axes 4: Composition - Protons
             ax5 = ax4.twinx()         
             ax5.plot(CIS_time, maskpro, color = 'r', lw=.5)
             ax5.set_ylabel('Protons per $cm^{3}$', color = 'r')          
-        ##ax5.set_xlim([start_Time, end_Time])               
+            ##ax5.set_xlim([start_Time, end_Time])               
             ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
+            applySmartTimeTicks(ax4, [start_Time, end_Time])  
     
         
-        
-        
-        ##### With these 2 blocks were adding planet earth to our postion graphs
+            ##### With these 2 blocks were adding planet earth to our postion graphs
             ax1 = fig.add_subplot(321)
             ax2 = fig.add_subplot(322)
        
             spacepy.pybats.add_planet(ax1)
             spacepy.pybats.add_planet(ax2)
         
-           
         
-        
-        
-        #### Here were making sure everything stays nice and cool looking
+            #### Here were making sure everything stays nice and cool looking
             plt.tight_layout(rect=[0, 0, 1, .95])
             plt.show()
         
         
-        ####  HERE WERE SAVING THE GRAPHS TO A FOLDER AND GIVING THE FILE A TITLE THAT HAVE THE DATE
-        #####  AND THE INTERVAL HOURS USED
-        #### Probably want to give the files a better name than me        
-            fig.savefig("Output/*" + c + " with interval hours: " +  str(n)+ ".jpg") 
-
-
-
-
-
-main()  
-
-   
-    
-     
-    
-   
-
-    
-    
-   
-   
-
-    
+            ####  HERE WERE SAVING THE GRAPHS TO A FOLDER AND GIVING THE FILE A TITLE THAT HAVE THE DATE
+            #####  AND THE INTERVAL HOURS USED
+            fig.savefig(outdir + f'fuze_T{a:%Y%m%d_%H%M%S}_int{n:02d}.png')
+            break
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-  
-    
-    
-    
-   
+#########################################################################################################
+# If this file is used via IPython's "run" magic command,
+# Evaluate on all figures.
+if __name__ == '__main__':
+    main()  

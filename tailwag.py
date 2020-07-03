@@ -203,7 +203,7 @@ def get_cluster_filename(epoch, sat=1):
     return (fgm, cis)
 
     
-def fetch_cluster_data(epoch, sat=1, tspan=12, debug=False):
+def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7, debug=False):
     '''
     For a given *epoch* and time span, *tspan*, about *epoch*, open and
     re-organize data from Cluster CIS and FGM files into a ready-to-use 
@@ -217,7 +217,7 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, debug=False):
     |----------|---------------------------------------------------|
     |fgm_time  | Array of datetimes for the FGM data.              |
     |cis_time  | Array of datetimes for the CIS data.              |
-    |dens_h    |
+    |dens_h    | Array of density values, protons only.            |
     |dens_o    |
     |v_h       |
     |b         |
@@ -235,6 +235,9 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, debug=False):
         epoch +/- tspan.
     sat : int
         The number, 1-4, indicating which satellite to use.
+    kernel_size : int
+        Size of median filter window size for smoothing density data.
+        MUST be a ODD NUMBER.
     debug : bool
         Turn on verbose debug info.
 
@@ -249,6 +252,7 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, debug=False):
     import datetime as dt
     import numpy as np
     from spacepy.pycdf import CDF
+    from scipy.signal import medfilt
     
     # Convert tspan to a timedelta:
     tspan = dt.timedelta(hours=tspan)
@@ -300,7 +304,20 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, debug=False):
     # Reshape 3D data that got flattened on append:
     for k in ['xyz', 'b', 'v_h']:
         data[k] = data[k].reshape( ( int(data[k].size/3), 3) )
-            
+
+    # Unit conversions: km -> RE
+    data['xyz'] /= 6378.16
+
+    # Mask bad data points, apply median filter to density:
+    data['dens_h'] = np.ma.masked_values(
+        medfilt(data['dens_h'], kernel_size=kernel_size),
+        cis[cis_map['dens_h']].attrs['FILLVAL'])
+    data['dens_o'] = np.ma.masked_values(
+        medfilt(data['dens_o'], kernel_size=kernel_size),
+        cis[cis_map['dens_o']].attrs['FILLVAL'])
+    data['b' ] = np.ma.masked_values(data['b'],
+                                     fgm[fgm_map['b']].attrs['FILLVAL'])
+    
     return data
     
 # This next block only executes if the code is run as a
