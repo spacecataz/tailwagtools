@@ -47,10 +47,13 @@ def main():
     Event_Data = pd.read_excel("Event_Points.xlsx", header = 0)
 
 
-    ####  getting three arrays: Points as strings, points as datetimes, and the used cluster satellite
+    ####  getting three arrays: Point_list as strings, Date_List as datetimes, and the used cluster satellite
     Point_List = Event_Data['Narrowed Point']
     Date_List  = [dt.datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f') for date in Point_List]
     Sat_List   = Event_Data['USED SAT']
+    
+    ##for (a, b) in zip(Point_List, Date_List):
+        ##print(type(a), type(b))
     
     
     
@@ -124,8 +127,7 @@ def main():
             
             
 
-            print("The length of the FGM array is:   " + str(len(FGM_time)) + "\n")
-            print("The length of half FGM array is:   " + str(round(len(FGM_time)/2)) + "\n")
+            
 
             ind_x = x[round(len(FGM_time)/2)]
             ind_y = y[round(len(FGM_time)/2)]
@@ -133,6 +135,9 @@ def main():
         
             print("The ind_x is:   " + str(ind_x) + "\n")
             print("The ind_y is:   " + str(ind_y) + "\n")
+            
+            print("The length of the FGM array is:   " + str(len(FGM_time)) + "\n")
+            print("The length of half FGM array is:   " + str(round(len(FGM_time)/2)) + "\n")
             
              
 
