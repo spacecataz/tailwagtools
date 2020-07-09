@@ -10,18 +10,19 @@ from dateutil.relativedelta import relativedelta
 import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
+##from matplotlib import style
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
 import scipy
-import scipy.signal
+import scipy.signal 
 import spacepy
 from spacepy.pycdf import CDF
-from spacepy.plot import applySmartTimeTicks, style
+from spacepy.plot import applySmartTimeTicks
 from spacepy import omni, time, pybats
 from spacepy import pybats
 import spacepy.plot
-from spacepy.plot import add_arrows
+from spacepy.plot import add_arrows, style
 import spacepy.irbempy as ib
 import spacepy.time as spt
 import spacepy.coordinates as spc
@@ -39,6 +40,7 @@ if not os.path.exists(outdir): os.mkdir(outdir)
 
 def main():
     print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
+    print(spacepy.plot.available(returnvals = False))
     
     
     
@@ -72,7 +74,7 @@ def main():
         Data_Dict = tw.fetch_cluster_data(a, b, 12)
         
         
-        # FETCH TSYG DATA HERE!
+        # FETCH TSYG DATA HERE!style.use('fivethirtyeight')
         
         TSYG_T89_time, TSYG_T89_B  = tw.gen_sat_tsyg(Data_Dict, extMag='T89', dbase='qd1min');  
         TSYG_T96_time, TSYG_T96_B = tw.gen_sat_tsyg(Data_Dict, extMag='T96', dbase='qd1min');  
@@ -144,7 +146,7 @@ def main():
 ###################################################################################
 #                          PLOTTING SECTION
 ###################################################################################
-        
+            
             fig = plt.figure(figsize=(8.5,11))
             fig.suptitle(c + " with interval hours: " +  str(n), fontsize=16)
         
@@ -171,7 +173,7 @@ def main():
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),) 
     
             # Axes 3: Magnetic field x-component:
-            ax3.plot(FGM_time, Bx, lw = .5)        
+            ax3.plot(FGM_time, Bx, lw = .5, color = 'b', linestyle = '--')        
             ax3.set(xlabel='time', ylabel='$B_X$ in nT',
                     title='$B_X$ Magnitude')
             ##ax3.set_xlim([start_Time, end_Time])
@@ -180,10 +182,10 @@ def main():
             applySmartTimeTicks(ax3, [start_Time, end_Time])
             
             ### Extra Plots### Magnetic field x-compnent from T89, T96, T01STORM
-            ax3.plot(T89_time, T89_Bx, color = 'r', lw=.5)
-            ax3.plot(T96_time, T96_Bx, color = 'g', lw=.5)
-            ax3.plot(T01_time, T01_Bx, color = 'y', lw=.5)
-            
+            ax3.plot(T89_time, T89_Bx, lw=.5, label='T89')
+            ax3.plot(T96_time, T96_Bx, lw=.5, label='T96')
+            ax3.plot(T01_time, T01_Bx, lw=.5, label='01STORM')
+            leg = ax3.legend();
             
             
             
@@ -196,16 +198,22 @@ def main():
             ax4.plot(CIS_time, maskoxy, color = 'g', lw = .5, alpha=0.7)
             ax4.set_ylabel('Oxygen per $cm^{3}$', color = 'g')        
             ## ax4.set_xlim([start_Time, end_Time])
-            ax4.grid(b = None, which='major', axis='both', color = 'g', alpha= 0.2, linestyle = '--')
+            ##ax4.grid(b = None, which='major', axis='both', color = 'w', alpha= 0.2, linestyle = '--')
             ax4.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
+            lims=ax4.get_ylim()
+            ax4.set_ylim([0, lims[1] ] )
+            ax4.yaxis.grid(False)
 
             # Axes 4: Composition - Protons
             ax5 = ax4.twinx()         
             ax5.plot(CIS_time, maskpro, color = 'r', lw=.5)
             ax5.set_ylabel('Protons per $cm^{3}$', color = 'r')          
             ##ax5.set_xlim([start_Time, end_Time])               
-            ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
+            ##ax5.grid(b = None, which='major', axis='both', color = 'w', linestyle = '--', alpha= 0.2 )
             applySmartTimeTicks(ax4, [start_Time, end_Time])  
+            lims=ax5.get_ylim()
+            ax5.set_ylim([0, lims[1] ] )
+            ax5.yaxis.grid(False)
     
         
             ##### With these 2 blocks were adding planet earth to our postion graphs
@@ -214,7 +222,7 @@ def main():
        
             spacepy.pybats.add_planet(ax1)
             spacepy.pybats.add_planet(ax2)
-        
+            style('spacepy')
         
             #### Here were making sure everything stays nice and cool looking
             plt.tight_layout(rect=[0, 0, 1, .95])
