@@ -51,7 +51,7 @@ def main():
 
     ####  getting three arrays: Point_list as strings, Date_List as datetimes, and the used cluster satellite
     Point_List = Event_Data['Narrowed Point']
-    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f') for date in Point_List]
+    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
     Sat_List   = Event_Data['USED SAT']
     
     ##for (a, b) in zip(Point_List, Date_List):
@@ -74,8 +74,7 @@ def main():
         Data_Dict = tw.fetch_cluster_data(a, b, 12)
         
         
-        # FETCH TSYG DATA HERE!style.use('fivethirtyeight')
-        
+        # FETCH TSYG DATA HERE!style.use('fivethirtyeight')       
         TSYG_T89_time, TSYG_T89_B  = tw.gen_sat_tsyg(Data_Dict, extMag='T89', dbase='qd1min');  
         TSYG_T96_time, TSYG_T96_B = tw.gen_sat_tsyg(Data_Dict, extMag='T96', dbase='qd1min');  
         TSYG_T01_time, TSYG_T01_B = tw.gen_sat_tsyg(Data_Dict, extMag='T01STORM', dbase='qd1min');  
@@ -113,12 +112,18 @@ def main():
             
             T89_time = TSYG_T89_time[filter2]
             T89_Bx = TSYG_T89_B[filter2, 0]
+            T89_By = TSYG_T89_B[filter2, 1]
+            T89_Bz = TSYG_T89_B[filter2, 2]
             
             T96_time = TSYG_T96_time[filter2]
             T96_Bx = TSYG_T96_B[filter2, 0]
+            T96_By = TSYG_T96_B[filter2, 1]
+            T96_Bz = TSYG_T96_B[filter2, 2]
             
             T01_time = TSYG_T01_time[filter2]
             T01_Bx = TSYG_T01_B[filter2, 0]
+            T01_By = TSYG_T01_B[filter2, 1]
+            T01_Bz = TSYG_T01_B[filter2, 2]
             
             
             print("WERE NOW HITTING DAT FOR LOOP.....\n")
@@ -155,22 +160,33 @@ def main():
             ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
             ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
 
+            style('spacepy')
+
             # Axes 1: Orbit in x-y plane:
             line1 = ax1.plot(x, y)
-            add_arrows(line1, n = 5, size = 18, style = '->')
+            ##line89 = ax1.plot(T89_Bx, T89_By)
+            ##line96 = ax1.plot(T96_Bx, T89_By)
+            ##line01 = ax1.plot(T01_Bx, T89_By)
         
             ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
                     title=' X vs Y position')
             ax1.annotate('Cross', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)  
+            ax1.plot(ind_x, ind_y, 'x-')
+           
+            
+            
+           
+            
             
             # Axes 2: Orbit in x-z plane:
             line2 = ax2.plot(x, z)
             ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
                     title=' X vs Z position')
-            add_arrows(line2, n = 5, size = 18, style = '->')
+            add_arrows(line2, n = 4, size = 18, style = '->')
             ax2.annotate('Cross', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),) 
+            ax2.plot(ind_x, ind_z, 'x-')
     
             # Axes 3: Magnetic field x-component:
             ax3.plot(FGM_time, Bx, lw = .5, color = 'b', linestyle = '--')        
@@ -181,7 +197,7 @@ def main():
             ax3.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
             applySmartTimeTicks(ax3, [start_Time, end_Time])
             
-            ### Extra Plots### Magnetic field x-compnent from T89, T96, T01STORM
+            ###Extra Plots### Magnetic field x-compnent from T89, T96, T01STORM
             ax3.plot(T89_time, T89_Bx, lw=.5, label='T89')
             ax3.plot(T96_time, T96_Bx, lw=.5, label='T96')
             ax3.plot(T01_time, T01_Bx, lw=.5, label='01STORM')
@@ -222,7 +238,8 @@ def main():
        
             spacepy.pybats.add_planet(ax1)
             spacepy.pybats.add_planet(ax2)
-            style('spacepy')
+            add_arrows(line1, n = 4, size = 18, style = '->')
+            
         
             #### Here were making sure everything stays nice and cool looking
             plt.tight_layout(rect=[0, 0, 1, .95])
