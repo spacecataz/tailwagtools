@@ -10,18 +10,19 @@ from dateutil.relativedelta import relativedelta
 import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
+##from matplotlib import style
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
 import scipy
-import scipy.signal
+import scipy.signal 
 import spacepy
 from spacepy.pycdf import CDF
-from spacepy.plot import applySmartTimeTicks, style
+from spacepy.plot import applySmartTimeTicks
 from spacepy import omni, time, pybats
 from spacepy import pybats
 import spacepy.plot
-from spacepy.plot import add_arrows
+from spacepy.plot import add_arrows, style
 import spacepy.irbempy as ib
 import spacepy.time as spt
 import spacepy.coordinates as spc
@@ -33,60 +34,32 @@ import tailwag as tw
 outdir = 'fuze_plots/'
 if not os.path.exists(outdir): os.mkdir(outdir)
 
-##############################################
-##     __  __                          
-##    |  \/  |   ___   _ __    _   _   
-##    | |\/| |  / _ \ | '_ \  | | | |  
-##    | |  | | |  __/ | | | | | |_| |  
-##    |_|  |_|  \___| |_| |_|  \__,_|  
-##                                  
-########################################
 
 
-# Menu to gather user choice about model option
-def menu():
-    print("Hello there, I want to play a game......\n")
-    
-
-    model_list = ['T87SHORT','T87LONG','T89','T96', 'T01STORM']
-    choice = input("Please enter a model from the list: [" + ' '.join(model_list) + "] or press 'Q' to quit.\n")
-
-    if choice in model_list:
-        print("You choose the model " + choice)
-        print()
-       
-        
-    elif choice == 'Q' or choice == 'q':
-        print("You choose to quit. Boomer.")
-        print()
-        sys.exit()
-
-    else:
-        print("You must choose a model option from the list")
-        print("Please try again. Boomer!")
-        print()
-        menu()
-        
-    return choice
 ###################################################################################   
 
 def main():
     print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
+    print(spacepy.plot.available(returnvals = False))
     
-    #####  grabbing the model choice to be used
-    choice = menu()
-    ####  Print Statement to check the chosen model type
-    print (" and now were outisde of the menu function and the choice is:   " + choice + "\n\n")
+    
     
     
     ####  swiping the event points from the excel file that were gonna use
     Event_Data = pd.read_excel("Event_Points.xlsx", header = 0)
 
 
-    ####  getting three arrays: Points as strings, points as datetimes, and the used cluster satellite
+    ####  getting three arrays: Point_list as strings, Date_List as datetimes, and the used cluster satellite
     Point_List = Event_Data['Narrowed Point']
-    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f') for date in Point_List]
+    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
     Sat_List   = Event_Data['USED SAT']
+    
+    ##for (a, b) in zip(Point_List, Date_List):
+        ##print(type(a), type(b))
+    
+    
+    
+
     
     
     for (a, b, c) in zip(Date_List, Sat_List, Point_List):
@@ -101,28 +74,22 @@ def main():
         Data_Dict = tw.fetch_cluster_data(a, b, 12)
         
         
-        '''
-        time = Data_Dict['fgm_time']
-        pos = Data_Dict['xyz']
+        # FETCH TSYG DATA HERE!style.use('fivethirtyeight')       
+        TSYG_T89_time, TSYG_T89_B  = tw.gen_sat_tsyg(Data_Dict, extMag='T89', dbase='qd1min');  
+        TSYG_T96_time, TSYG_T96_B = tw.gen_sat_tsyg(Data_Dict, extMag='T96', dbase='qd1min');  
+        TSYG_T01_time, TSYG_T01_B = tw.gen_sat_tsyg(Data_Dict, extMag='T01STORM', dbase='qd1min');  
+      
         
-        # Convert to ticktocks:
-        ticks = spt.Ticktock(time, 'ISO')
         
-        pos = spc.Coords(pos/6371, 'GSE', 'car')
-        
-        # Fetch minute-level omni:
-        omni_data = omni.get_omni(ticks, dbase='qd1min') 
-            
-        
-        # Computes the magnetic field strength
-        ##b_tsyg = ib.get_Bfield(ticks, pos, extMag=choice, omnivals=omni_data)
-        ''' 
-
-        # FETCH TSYG DATA HERE!
-        #time_t89, b_t89 = ....
-        
+        print("#############################################################")
+        print("The following stuff is what is inside the T89 function......\n")
+        ##for thing in TSYG_T89:
+            ##print(thing)
+    
+    
         ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
         for n in range(2, 13, 2):
+            print("WERE NOW INSIDE THE LOOPING FUNCTION TO SNAG VALUES......\n")
             ####  Set up start and stop times so that we can narrow our data down early
             start_Time = a - timedelta(hours = n)
             end_Time   = a + timedelta(hours = n)
@@ -140,10 +107,34 @@ def main():
             y = Data_Dict['xyz'][filter2,1]
             z = Data_Dict['xyz'][filter2,2]
 
+            
+            
+            
+            T89_time = TSYG_T89_time[filter2]
+            T89_Bx = TSYG_T89_B[filter2, 0]
+            T89_By = TSYG_T89_B[filter2, 1]
+            T89_Bz = TSYG_T89_B[filter2, 2]
+            
+            T96_time = TSYG_T96_time[filter2]
+            T96_Bx = TSYG_T96_B[filter2, 0]
+            T96_By = TSYG_T96_B[filter2, 1]
+            T96_Bz = TSYG_T96_B[filter2, 2]
+            
+            T01_time = TSYG_T01_time[filter2]
+            T01_Bx = TSYG_T01_B[filter2, 0]
+            T01_By = TSYG_T01_B[filter2, 1]
+            T01_Bz = TSYG_T01_B[filter2, 2]
+            
+            
+            print("WERE NOW HITTING DAT FOR LOOP.....\n")
             # FILTER TSYG DATA HERE.
+            ##for (a, b) in zip(T89_time,T89_Bx):
+                ##print (a, b)
+            
+            
+            
 
-            print("The length of the FGM array is:   " + str(len(FGM_time)) + "\n")
-            print("The length of half FGM array is:   " + str(round(len(FGM_time)/2)) + "\n")
+            
 
             ind_x = x[round(len(FGM_time)/2)]
             ind_y = y[round(len(FGM_time)/2)]
@@ -152,12 +143,15 @@ def main():
             print("The ind_x is:   " + str(ind_x) + "\n")
             print("The ind_y is:   " + str(ind_y) + "\n")
             
+            print("The length of the FGM array is:   " + str(len(FGM_time)) + "\n")
+            print("The length of half FGM array is:   " + str(round(len(FGM_time)/2)) + "\n")
+            
              
 
 ###################################################################################
 #                          PLOTTING SECTION
 ###################################################################################
-        
+            
             fig = plt.figure(figsize=(8.5,11))
             fig.suptitle(c + " with interval hours: " +  str(n), fontsize=16)
         
@@ -166,32 +160,53 @@ def main():
             ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
             ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
 
+            style('spacepy')
+
             # Axes 1: Orbit in x-y plane:
             line1 = ax1.plot(x, y)
-            add_arrows(line1, n = 5, size = 18, style = '->')
+            ##line89 = ax1.plot(T89_Bx, T89_By)
+            ##line96 = ax1.plot(T96_Bx, T89_By)
+            ##line01 = ax1.plot(T01_Bx, T89_By)
         
             ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
                     title=' X vs Y position')
             ax1.annotate('Cross', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)  
+            ax1.plot(ind_x, ind_y, 'x-')
+           
+            
+            
+           
+            
             
             # Axes 2: Orbit in x-z plane:
             line2 = ax2.plot(x, z)
             ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
                     title=' X vs Z position')
-            add_arrows(line2, n = 5, size = 18, style = '->')
+            add_arrows(line2, n = 4, size = 18, style = '->')
             ax2.annotate('Cross', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),) 
+            ax2.plot(ind_x, ind_z, 'x-')
     
             # Axes 3: Magnetic field x-component:
-            ax3.plot(FGM_time, Bx, lw = .5)        
+            ax3.plot(FGM_time, Bx, lw = .5, color = 'b', linestyle = '--')        
             ax3.set(xlabel='time', ylabel='$B_X$ in nT',
                     title='$B_X$ Magnitude')
             ##ax3.set_xlim([start_Time, end_Time])
             ax3.hlines(0, FGM_time[0], FGM_time[-1], lw=1, color='black', linestyle = '--')
             ax3.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
             applySmartTimeTicks(ax3, [start_Time, end_Time])
-       
+            
+            ###Extra Plots### Magnetic field x-compnent from T89, T96, T01STORM
+            ax3.plot(T89_time, T89_Bx, lw=.5, label='T89')
+            ax3.plot(T96_time, T96_Bx, lw=.5, label='T96')
+            ax3.plot(T01_time, T01_Bx, lw=.5, label='01STORM')
+            leg = ax3.legend();
+            
+            
+            
+           
+          
             # Axes 4: Composition - Oxygen
             ax4.set_xlabel('time')
             ax4.set_title('Proton and Oxygen Densities')
@@ -199,16 +214,22 @@ def main():
             ax4.plot(CIS_time, maskoxy, color = 'g', lw = .5, alpha=0.7)
             ax4.set_ylabel('Oxygen per $cm^{3}$', color = 'g')        
             ## ax4.set_xlim([start_Time, end_Time])
-            ax4.grid(b = None, which='major', axis='both', color = 'g', alpha= 0.2, linestyle = '--')
+            ##ax4.grid(b = None, which='major', axis='both', color = 'w', alpha= 0.2, linestyle = '--')
             ax4.axvline(x = a, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
+            lims=ax4.get_ylim()
+            ax4.set_ylim([0, lims[1] ] )
+            ax4.yaxis.grid(False)
 
             # Axes 4: Composition - Protons
             ax5 = ax4.twinx()         
             ax5.plot(CIS_time, maskpro, color = 'r', lw=.5)
             ax5.set_ylabel('Protons per $cm^{3}$', color = 'r')          
             ##ax5.set_xlim([start_Time, end_Time])               
-            ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
+            ##ax5.grid(b = None, which='major', axis='both', color = 'w', linestyle = '--', alpha= 0.2 )
             applySmartTimeTicks(ax4, [start_Time, end_Time])  
+            lims=ax5.get_ylim()
+            ax5.set_ylim([0, lims[1] ] )
+            ax5.yaxis.grid(False)
     
         
             ##### With these 2 blocks were adding planet earth to our postion graphs
@@ -217,7 +238,8 @@ def main():
        
             spacepy.pybats.add_planet(ax1)
             spacepy.pybats.add_planet(ax2)
-        
+            add_arrows(line1, n = 4, size = 18, style = '->')
+            
         
             #### Here were making sure everything stays nice and cool looking
             plt.tight_layout(rect=[0, 0, 1, .95])
@@ -227,7 +249,7 @@ def main():
             ####  HERE WERE SAVING THE GRAPHS TO A FOLDER AND GIVING THE FILE A TITLE THAT HAVE THE DATE
             #####  AND THE INTERVAL HOURS USED
             fig.savefig(outdir + f'fuze_T{a:%Y%m%d_%H%M%S}_int{n:02d}.png')
-            break
+            
         
 #########################################################################################################
 # If this file is used via IPython's "run" magic command,
