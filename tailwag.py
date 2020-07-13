@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+==#!/usr/bin/env python
 '''
 A module for performing analysis of outflow wagging the tail.
 '''
