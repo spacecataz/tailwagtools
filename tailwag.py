@@ -232,6 +232,7 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
     |v_h       | 3D velocity of cold protons DO NOT USE YET.       |
     |b         | An Nx3 array of Bx, By, Bz values                 |
     |xyz       | An Nx3 array of the spacecraft's location         |
+    |coords    | A string giving the coordinate system of the data |
 
     Parameters
     ----------
