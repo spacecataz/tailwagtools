@@ -1,4 +1,4 @@
-==#!/usr/bin/env python
+#!/usr/bin/env python
 '''
 A module for performing analysis of outflow wagging the tail.
 '''
@@ -213,7 +213,7 @@ def get_cluster_filename(epoch, sat=1):
 
     
 def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
-                       coords='GSM', debug=False):
+                       coords='GSM', debug=False, prune=True):
     '''
     For a given *epoch* and time span, *tspan*, about *epoch*, open and
     re-organize data from Cluster CIS and FGM files into a ready-to-use 
@@ -253,6 +253,8 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
         Set the output coordinate system, defaults to GSM.
     debug : bool
         Turn on verbose debug info.
+    prune : bool
+        Prune data to only epoch +/- tspan.
 
     Returns
     -------
@@ -320,6 +322,23 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
     for k in ['xyz', 'b', 'v_h']:
         data[k] = data[k].reshape( ( int(data[k].size/3), 3) )
 
+    # Prune data down to only what we need!
+    if prune:
+        start_Time = epoch - tspan
+        end_Time   = epoch + tspan
+
+        # Filter down data to only within time range:
+        mask = (data['cis_time']>=start_Time) & (data['cis_time']<=end_Time)    
+        for x in ['cis_time', 'dens_h', 'dens_o']:
+            data[x] = data[x][mask]
+        data['v_h'] = data['v_h'][mask,:]
+        
+        # Do the same thing as the above and set up a second filter for FGM data   
+        mask = (data['fgm_time']>=start_Time) & (data['fgm_time']<=end_Time)
+        data['fgm_time'] = data['fgm_time'][mask]
+        data['xyz']      = data['xyz'][mask,:]
+        data['b']        = data['b'][mask,:]
+        
     # Unit conversions: km -> RE
     data['xyz'] /= 6378.16
 
@@ -443,69 +462,74 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
         TSYG_T89_time, TSYG_T89_B = gen_sat_tsyg(Data_Dict, extMag='T89', dbase='qd1min');  
         TSYG_T96_time, TSYG_T96_B = gen_sat_tsyg(Data_Dict, extMag='T96', dbase='qd1min');  
         TSYG_T01_time, TSYG_T01_B = gen_sat_tsyg(Data_Dict, extMag='T01STORM', dbase='qd1min'); 
+        # Create "helper variable" names:
+        T89_time = TSYG_T89_time
+        T89_Bx = TSYG_T89_B[:, 0]
+        
+        T96_time = TSYG_T96_time
+        T96_Bx = TSYG_T96_B[:, 0]
+        
+        T01_time = TSYG_T01_time
+        T01_Bx = TSYG_T01_B[:, 0]
+
+    ### Trim down data to largest time range.
+    ####  Set up start and stop times so that we can narrow our data down early
+    start_Time = Date_date - timedelta(hours = interval_hours)
+    end_Time   = Date_date + timedelta(hours = interval_hours)
     
+    #### Set up a filter for CIS data to narrow down the stuff from the 
+    #### massive dictionary that we just made
+    CIS_time = Data_Dict['cis_time']
+    maskpro = Data_Dict['dens_h']
+    maskoxy = Data_Dict['dens_o']
+        
+    #### Do the same thing as the above and set up a second   filter for FGM data   
+    FGM_time = Data_Dict['fgm_time']
+    Bx = Data_Dict['b'][:,0]
+    x = Data_Dict['xyz'][:,0]
+    y = Data_Dict['xyz'][:,1]
+    z = Data_Dict['xyz'][:,2]
+    
+    #### These values are what we will use to plot the crossing point
+    #### On our graphs that we are about to make......
+    ind_x = x[round(len(FGM_time)/2)]
+    ind_y = y[round(len(FGM_time)/2)]
+    ind_z = z[round(len(FGM_time)/2)]
+
+    ###################################################################################
+    #        PLOTTING SECTION
+    ###################################################################################
     
     ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
-    for n in range(2, interval_hours + 1, 2):
-        print("WERE NOW INSIDE THE LOOPING FUNCTION TO SNAG VALUES......\n")
+    for n in range(interval_hours, 2, -2):
+        print(f"WERE NOW INSIDE THE LOOPING FUNCTION TO SNAG VALUES...... n={n}\n")
+
         ####  Set up start and stop times so that we can narrow our data down early
         start_Time = Date_date - timedelta(hours = n)
         end_Time   = Date_date + timedelta(hours = n)
         
-        
-        #### Set up a filter for CIS data to narrow down the stuff from the 
-        #### massive dictionary that we just made
-        filter1 = (Data_Dict['cis_time']>=start_Time) & (Data_Dict['cis_time']<=end_Time)    
-        CIS_time = Data_Dict['cis_time'][filter1]
-        maskpro = Data_Dict['dens_h'][filter1]
-        maskoxy = Data_Dict['dens_o'][filter1]
-        #### Do the same thing as the above and set up a second   filter for FGM data   
-        filter2 = (Data_Dict['fgm_time']>=start_Time) & (Data_Dict['fgm_time']<=end_Time)
-        FGM_time = Data_Dict['fgm_time'][filter2]
-        Bx = Data_Dict['b'][filter2,0]
-        x = Data_Dict['xyz'][filter2,0]
-        y = Data_Dict['xyz'][filter2,1]
-        z = Data_Dict['xyz'][filter2,2]
-        
-        #### Here we are creating the arrays that we are going to be using in 
-        #### our graphs, they are require the FGM filter to match things correctly       
-        if add_tsyg:
-            T89_time = TSYG_T89_time[filter2]
-            T89_Bx = TSYG_T89_B[filter2, 0]
-            
-            T96_time = TSYG_T96_time[filter2]
-            T96_Bx = TSYG_T96_B[filter2, 0]
-            
-            T01_time = TSYG_T01_time[filter2]
-            T01_Bx = TSYG_T01_B[filter2, 0]
-
-        #### These values are what we will use to plot the crossing point
-        #### On our graphs that we are about to make......
-        ind_x = x[round(len(FGM_time)/2)]
-        ind_y = y[round(len(FGM_time)/2)]
-        ind_z = z[round(len(FGM_time)/2)]
-            
-        ###################################################################################
-        #        PLOTTING SECTION
-        ###################################################################################
-            
         #### Create our figure to plot on, give the title and make sure its the 
         #### size of a piece of standard  paper homie
         fig = plt.figure(figsize=(8.5,11))
-        fig.suptitle(Date_str + " with interval hours: " +  str(n), fontsize=16)
+        fig.suptitle(Date_str + f" $\\pm${n} Hours", fontsize=16)
         
         
         ####Creating the 4 subplots were going to need
         ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
         ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
 
+        # Cut down orbits to ONLY period of interest +/- N hours
+        filter2 = (Data_Dict['fgm_time']>=start_Time) & (Data_Dict['fgm_time']<=end_Time)
+        x = Data_Dict['xyz'][filter2,0]
+        y = Data_Dict['xyz'][filter2,1]
+        z = Data_Dict['xyz'][filter2,2]
 
         # Axes 1: Orbit in x-y plane:
         line1 = ax1.plot(x, y)        
         ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
                     title=' X vs Y position')
         add_arrows(line1, n = 5, size = 18, style = '->')     
-        ax1.annotate('Cross', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
+        ax1.annotate('Tail Crossing', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)  
             
         
@@ -514,39 +538,43 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
         ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
                 title=' X vs Z position')
         add_arrows(line2, n = 5, size = 18, style = '->')
-        ax2.annotate('Cross', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
+        ax2.annotate('Tail Crossing', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
                      arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),) 
     
     
         # Axes 3: Magnetic field x-component:
-        ax3.plot(FGM_time, Bx, lw = .5)        
+        ax3.plot(FGM_time, Bx, 'b-', lw = .5, label=f'Cluster {Sat_int} B$_X$')
         ax3.set(xlabel='time', ylabel='$B_X$ in nT',
                     title='$B_X$ Magnitude')
-        ax3.hlines(0, FGM_time[0], FGM_time[-1], lw=1, color='black', linestyle = '--')
+        ax3.hlines(0, start_Time, end_Time, lw=1, color='black', linestyle = '--')
         ax3.axvline(x = Date_date, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
         applySmartTimeTicks(ax3, [start_Time, end_Time])
             
         
         ### Extra Plots### Magnetic field x-compnent from T89, T96, T01STORM
         if add_tsyg:
-            ax3.plot(T89_time, T89_Bx, lw=.5)
-            ax3.plot(T96_time, T96_Bx, lw=.5)
-            ax3.plot(T01_time, T01_Bx, lw=.5)
-        
-        
-         # Axes 4: Composition - Oxygen
+            ax3.plot(T89_time, T89_Bx, lw=.5, color='green',   label='T89')
+            ax3.plot(T96_time, T96_Bx, lw=.5, color='orange',  label='T96')
+            ax3.plot(T01_time, T01_Bx, lw=.5, color='crimson', label='T01S')
+            ax3.legend(loc='best')
+            
+        # Axes 4: Composition - Oxygen
         ax4.set_xlabel('time')
         ax4.set_title('Proton and Oxygen Densities')       
         ax4.plot(CIS_time, maskoxy, color = 'g', lw = .5, alpha=0.7)
-        ax4.set_ylabel('Oxygen per $cm^{3}$', color = 'g')        
-        ax4.grid(b = None, which='major', axis='both', color = 'g', alpha= 0.2, linestyle = '--')
+        ax4.set_ylabel('Oxygen per $cm^{3}$', color = 'g')
+        ax4.tick_params(axis='y', labelcolor='g')
+        ax4.grid(axis='y')
+        #ax4.grid(which='major', axis='both', color = 'g', alpha= 0.2, linestyle = '--')
         ax4.axvline(x = Date_date, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
 
         # Axes 5: Composition - Protons
         ax5 = ax4.twinx()         
         ax5.plot(CIS_time, maskpro, color = 'r', lw=.5)
-        ax5.set_ylabel('Protons per $cm^{3}$', color = 'r')          
-        ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
+        ax5.set_ylabel('Protons per $cm^{3}$', color = 'r')
+        ax5.tick_params(axis='y', labelcolor='r')
+        ax5.grid(axis='y')
+        #ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
         applySmartTimeTicks(ax4, [start_Time, end_Time])  
     
         
@@ -561,8 +589,8 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
         ####  Doing a tight layout because it will do weird shit otherwise   
         fig.tight_layout(rect=[0, 0, 1, .95])
         
-        #### Return dat shit
-        return fig, ax1, ax2, ax3, ax4, ax5
+    #### Return dat shit
+    return fig, ax1, ax2, ax3, ax4, ax5
     
     
     
