@@ -396,14 +396,7 @@ if __name__ == '__main__':
     plt.show()
     
     
-def Fusion(Date_date, Sat_int, Date_str, interval_hours):
-    from datetime import timedelta 
-    from matplotlib import pyplot as plt
-    import tailwag as tw    
-    import spacepy
-    from spacepy.plot import applySmartTimeTicks, style, add_arrows
-    from spacepy import pybats
-   
+def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
     '''
     Parameters
     ----------
@@ -411,12 +404,8 @@ def Fusion(Date_date, Sat_int, Date_str, interval_hours):
         Our POI as a datetime object to be fed into various functions
     Sat_int : an int
         The Cluster satellite we will use from 1-4
-    Date_str : a string
-        Our POI as a string
     interval_hours : int
         A int that will give us the number of hours on each side of our POI
-    
-    
 
     Returns
     -------
@@ -434,15 +423,26 @@ def Fusion(Date_date, Sat_int, Date_str, interval_hours):
        A subplot for Hydrogen densities 
 
     '''
+    from datetime import timedelta 
+    from matplotlib import pyplot as plt
+    import spacepy
+    from spacepy.plot import applySmartTimeTicks, style, add_arrows
+    from spacepy import pybats
+
+    style('spacepy')
+
+    # Get string with date & time:
+    Date_str = f'{Date_date:%Y-%m-%d %H:%M:%S}'
+    
     ### Grabbing the cluster data from the given satellite with our 
     ###   selected interval hours.....
-    Data_Dict = tw.fetch_cluster_data(Date_date, Sat_int, interval_hours)
-    
+    Data_Dict = fetch_cluster_data(Date_date, Sat_int, interval_hours)
     
     ### FETCH TSYG DATA HERE!       
-    TSYG_T89_time, TSYG_T89_B  = tw.gen_sat_tsyg(Data_Dict, extMag='T89', dbase='qd1min');  
-    TSYG_T96_time, TSYG_T96_B = tw.gen_sat_tsyg(Data_Dict, extMag='T96', dbase='qd1min');  
-    TSYG_T01_time, TSYG_T01_B = tw.gen_sat_tsyg(Data_Dict, extMag='T01STORM', dbase='qd1min'); 
+    if add_tsyg:
+        TSYG_T89_time, TSYG_T89_B = gen_sat_tsyg(Data_Dict, extMag='T89', dbase='qd1min');  
+        TSYG_T96_time, TSYG_T96_B = gen_sat_tsyg(Data_Dict, extMag='T96', dbase='qd1min');  
+        TSYG_T01_time, TSYG_T01_B = gen_sat_tsyg(Data_Dict, extMag='T01STORM', dbase='qd1min'); 
     
     
     ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
@@ -469,15 +469,15 @@ def Fusion(Date_date, Sat_int, Date_str, interval_hours):
         
         #### Here we are creating the arrays that we are going to be using in 
         #### our graphs, they are require the FGM filter to match things correctly       
-        T89_time = TSYG_T89_time[filter2]
-        T89_Bx = TSYG_T89_B[filter2, 0]
+        if add_tsyg:
+            T89_time = TSYG_T89_time[filter2]
+            T89_Bx = TSYG_T89_B[filter2, 0]
             
-        T96_time = TSYG_T96_time[filter2]
-        T96_Bx = TSYG_T96_B[filter2, 0]
+            T96_time = TSYG_T96_time[filter2]
+            T96_Bx = TSYG_T96_B[filter2, 0]
             
-        T01_time = TSYG_T01_time[filter2]
-        T01_Bx = TSYG_T01_B[filter2, 0]
-            
+            T01_time = TSYG_T01_time[filter2]
+            T01_Bx = TSYG_T01_B[filter2, 0]
 
         #### These values are what we will use to plot the crossing point
         #### On our graphs that we are about to make......
@@ -528,9 +528,10 @@ def Fusion(Date_date, Sat_int, Date_str, interval_hours):
             
         
         ### Extra Plots### Magnetic field x-compnent from T89, T96, T01STORM
-        ax3.plot(T89_time, T89_Bx, lw=.5)
-        ax3.plot(T96_time, T96_Bx, lw=.5)
-        ax3.plot(T01_time, T01_Bx, lw=.5)
+        if add_tsyg:
+            ax3.plot(T89_time, T89_Bx, lw=.5)
+            ax3.plot(T96_time, T96_Bx, lw=.5)
+            ax3.plot(T01_time, T01_Bx, lw=.5)
         
         
          # Axes 4: Composition - Oxygen
@@ -556,11 +557,9 @@ def Fusion(Date_date, Sat_int, Date_str, interval_hours):
        
         spacepy.pybats.add_planet(ax1)
         spacepy.pybats.add_planet(ax2)
-        style('spacepy')
-        
         
         ####  Doing a tight layout because it will do weird shit otherwise   
-        fig.plt.tight_layout(rect=[0, 0, 1, .95])
+        fig.tight_layout(rect=[0, 0, 1, .95])
         
         #### Return dat shit
         return fig, ax1, ax2, ax3, ax4, ax5
