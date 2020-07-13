@@ -172,7 +172,7 @@ def main():
                     title=' X vs Y position')
             ax1.annotate('Cross', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)  
-            ax1.plot(ind_x, ind_y, 'x-')
+            ax1.plot(ind_x, ind_y, 'o', ms=3)
            
             
             
@@ -186,7 +186,7 @@ def main():
             add_arrows(line2, n = 4, size = 18, style = '->')
             ax2.annotate('Cross', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),) 
-            ax2.plot(ind_x, ind_z, 'x-')
+            ax2.plot(ind_x, ind_z, 'o', ms=3)
     
             # Axes 3: Magnetic field x-component:
             ax3.plot(FGM_time, Bx, lw = .5, color = 'b', linestyle = '--')        
