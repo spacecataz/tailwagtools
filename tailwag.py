@@ -415,7 +415,7 @@ if __name__ == '__main__':
     plt.show()
     
     
-def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
+def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_plots/'):
     '''
     Parameters
     ----------
@@ -444,11 +444,14 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
     '''
     from datetime import timedelta 
     from matplotlib import pyplot as plt
+    import os
     import spacepy
+    
     from spacepy.plot import applySmartTimeTicks, style, add_arrows
     from spacepy import pybats
 
     style('spacepy')
+    if not os.path.exists(outdir): os.mkdir(outdir)
 
     # Get string with date & time:
     Date_str = f'{Date_date:%Y-%m-%d %H:%M:%S}'
@@ -501,7 +504,7 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
     ###################################################################################
     
     ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
-    for n in range(interval_hours, 2, -2):
+    for n in range(interval_hours, 1, -2):
         print(f"WERE NOW INSIDE THE LOOPING FUNCTION TO SNAG VALUES...... n={n}\n")
 
         ####  Set up start and stop times so that we can narrow our data down early
@@ -531,7 +534,7 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
         add_arrows(line1, n = 5, size = 18, style = '->')     
         ax1.annotate('Tail Crossing', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
                          arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)  
-            
+        ax1.plot(ind_x, ind_y, 'o', ms=3)   
         
         # Axes 2: Orbit in x-z plane:
         line2 = ax2.plot(x, z)
@@ -540,7 +543,7 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
         add_arrows(line2, n = 5, size = 18, style = '->')
         ax2.annotate('Tail Crossing', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
                      arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),) 
-    
+        ax2.plot(ind_x, ind_z, 'o', ms=3)
     
         # Axes 3: Magnetic field x-component:
         ax3.plot(FGM_time, Bx, 'b-', lw = .5, label=f'Cluster {Sat_int} B$_X$')
@@ -588,9 +591,14 @@ def Fusion(Date_date, Sat_int, interval_hours, add_tsyg=True):
         
         ####  Doing a tight layout because it will do weird shit otherwise   
         fig.tight_layout(rect=[0, 0, 1, .95])
+        plt.show()
+        
+        ####  HERE WERE SAVING THE GRAPHS TO A FOLDER AND GIVING THE FILE A TITLE THAT HAVE THE DATE
+        #####  AND THE INTERVAL HOURS USED
+        fig.savefig(outdir + f'fuze_T{Date_date:%Y%m%d_%H%M%S}_int{n:02d}.png')
         
     #### Return dat shit
-    return fig, ax1, ax2, ax3, ax4, ax5
+    return fig, ax1, ax2, ax3, ax4, ax5, n
     
     
     
