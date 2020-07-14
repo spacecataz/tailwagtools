@@ -54,14 +54,7 @@ def main():
     Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
     Sat_List   = Event_Data['USED SAT']
     
-    ##for (a, b) in zip(Point_List, Date_List):
-        ##print(type(a), type(b))
-    
-    
-    
-
-    
-    
+       
     for (a, b, c) in zip(Date_List, Sat_List, Point_List):
     ###  Print to see which date we are currently using
         print("Entering the for loop with the following event date: " + c + "\n\n")
@@ -256,3 +249,10 @@ def main():
 # Evaluate on all figures.
 if __name__ == '__main__':
     main()  
+       
+    
+    
+    
+
+    
+ 
