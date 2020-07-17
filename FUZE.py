@@ -53,10 +53,14 @@ def main():
     Point_List = Event_Data['Narrowed Point']
     Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
     Sat_List   = Event_Data['USED SAT']
+    Op_List    = Event_Data['Operation']
     
        
-    for (a, b) in zip(Date_List, Sat_List):
-        fig, ax1, ax2, ax3, ax4, ax5, n = tw.fusion(a, b, 12, outdir = 'fusion_plots/')
+    for (a, b, c) in zip(Date_List, Sat_List, Op_List):
+        if c == "SKIP":
+            continue
+        else:
+            fig, ax1, ax2, ax3, ax4, ax5, n = tw.fusion(a, b, 12, outdir = 'fusion_plots/')
         
         
         
