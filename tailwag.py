@@ -365,55 +365,53 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
     data['coords'] = coords
     
     return data
-    
-# This next block only executes if the code is run as a
-# script and not a module (e.g., "run tailway" vs. "import tailwag").
-if __name__ == '__main__':
 
-    import matplotlib.pyplot as plt
-    from spacepy.plot import applySmartTimeTicks, style
-    from spacepy.pycdf import CDF
+def get_crossing_info(epoch):
+    '''
+    For a given crossing epoch, calculate and return the following:
 
-    # Turn on good plot style via spacepy:
-    style()
-    
-    # Let's run a quick visual test to make sure things are working:
-    # Each call uses a different Tsyganenko model.
-    time, mag_t89 = gen_sat_tsyg('sample_data/example_cluster.cdf',
-                                 coords='GSE', dbase='qd1min')
-    time, mag_t01 = gen_sat_tsyg('sample_data/example_cluster.cdf',
-                                 extMag='T01STORM', coords='GSE', dbase='qd1min')
+    - The crossing time for all Tsgyanenko models under consideration
+    - The average density before and after the cluster crossing
+      for both H+ and O+.
 
-    # Open our real data:
-    data = CDF('sample_data/example_cluster.cdf')
-    mag_cls = data['B_vec_xyz_gse__C1_CP_FGM_SPIN'][...]
-    
-    # Create our plot and axes:
-    fig  = plt.figure( figsize=[8,8] )
-    axes = fig.subplots(3,1)
+    Parameters
+    ----------
+    epoch : datetime.datetime
+       The time of the cluster crossing of the plasmasheet.
 
-    # Plot each field component:
-    for i,x in enumerate('xyz'):
-        ax = axes[i]
-        ax.plot(time, mag_cls[:,i], label='Cluster 1', lw=2.0)
-        ax.plot(time, mag_t89[:,i], label='T89')
-        ax.plot(time, mag_t01[:,i], label='T01s')
+    Other Parameters
+    ----------------
+    bsens : float
+       The maximum value of Bx in Tsyg results that is considered
+       to be a crossing.  Defaults to 1 nT.
 
-        # Apply better time ticks; only label bottom-most axes:
-        applySmartTimeTicks(ax, time, dolabel=ax==axes[-1])
-        # Add y-labels:
-        ax.set_ylabel('B$_{}$ ($nT$)'.format(x.upper()))
+    Returns
+    -------
 
-    # Add plot title and legend:
-    axes[0].legend(loc='best', ncol=3)
-    axes[0].set_title('Cluster vs. T89 vs. T01s', size=18)
-    
-    # Sharpen things up.
-    fig.tight_layout()
+    Examples
+    --------
+    '''
 
-    # Show the plot:
-    plt.show()
-    
+    # Get cluster data associated with epoch:
+    data = fetc_cluster_data(epoch, bsens=1)
+
+    # Get crossing time for each Tsyg model.
+    # This is a dictionary of datetimes.
+    t_times = {} # Container for results.
+
+    for vers in ['T89','T96', 'T01STORM']:
+        # DTW notes: this may fail if a model is not available.
+        t, b01 = tailwag.gen_sat_tsyg(data, extMag=vers) # get Tsyg data
+        loc = np.abs(b01[:,0])==np.abs(b01[:,0]).min() # location of crossing
+        # Test to see if crossing data is legit:
+        # If there are no points found, then there was no Tsyg model data
+        # If the minimum b_field is not reasonably close to zero, then
+        # there is a data gap over the crossing.
+        if loc.size == 0 or np.abs(b01[loc,0])>bsens:
+            t_times[vers] = np.nan
+            
+
+    return t_times
     
 def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_plots/'):
     '''
@@ -600,15 +598,50 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_p
     #### Return dat shit
     return fig, ax1, ax2, ax3, ax4, ax5, n
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+# This next block only executes if the code is run as a
+# script and not a module (e.g., "run tailway" vs. "import tailwag").
+if __name__ == '__main__':
 
+    import matplotlib.pyplot as plt
+    from spacepy.plot import applySmartTimeTicks, style
+    from spacepy.pycdf import CDF
+
+    # Turn on good plot style via spacepy:
+    style()
+    
+    # Let's run a quick visual test to make sure things are working:
+    # Each call uses a different Tsyganenko model.
+    time, mag_t89 = gen_sat_tsyg('sample_data/example_cluster.cdf',
+                                 coords='GSE', dbase='qd1min')
+    time, mag_t01 = gen_sat_tsyg('sample_data/example_cluster.cdf',
+                                 extMag='T01STORM', coords='GSE', dbase='qd1min')
+
+    # Open our real data:
+    data = CDF('sample_data/example_cluster.cdf')
+    mag_cls = data['B_vec_xyz_gse__C1_CP_FGM_SPIN'][...]
+    
+    # Create our plot and axes:
+    fig  = plt.figure( figsize=[8,8] )
+    axes = fig.subplots(3,1)
+
+    # Plot each field component:
+    for i,x in enumerate('xyz'):
+        ax = axes[i]
+        ax.plot(time, mag_cls[:,i], label='Cluster 1', lw=2.0)
+        ax.plot(time, mag_t89[:,i], label='T89')
+        ax.plot(time, mag_t01[:,i], label='T01s')
+
+        # Apply better time ticks; only label bottom-most axes:
+        applySmartTimeTicks(ax, time, dolabel=ax==axes[-1])
+        # Add y-labels:
+        ax.set_ylabel('B$_{}$ ($nT$)'.format(x.upper()))
+
+    # Add plot title and legend:
+    axes[0].legend(loc='best', ncol=3)
+    axes[0].set_title('Cluster vs. T89 vs. T01s', size=18)
+    
+    # Sharpen things up.
+    fig.tight_layout()
+
+    # Show the plot:
+    plt.show()

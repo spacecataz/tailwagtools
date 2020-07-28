@@ -6,6 +6,7 @@ import datetime as dt
 
 #create an epoch
 # epoch = dt.datetime(2001,8,19,20,0,0)
+### Read list of events:
 f = open('Event_Points.txt','r')
 lines = f.readlines()
 f.close()
@@ -31,7 +32,7 @@ for i in range(bins-1):
 
 #load cluster data at desired time
 for i in range(len(epoch)):
-    data[i]  = tailwag.fetch_cluster_data(epoch[i])
+    data[i]  = tailwag.fetch_cluster_data(epoch[i]) # Use tspan here.
     t[i],b89[i] = tailwag.gen_sat_tsyg(data[i],extMag = 'T89')
     tdelta  = dt.timedelta(hours=6) #narrow down to +/- 6 hours
     loc[i]    = (t[i]>=epoch[i]-tdelta)&(t[i]<=epoch[i]+tdelta)
@@ -123,7 +124,7 @@ for i in range(len(epoch)):
 # axs[1].plot(t_cis[loc6],data['dens_h'][loc6])
 # axs[1].plot(t_cis[loc6],data['dens_o'][loc6])
 
-*******************************
+#*******************************
 
 #identify plasma density at cluster time
 for i in range(len(epoch)):
