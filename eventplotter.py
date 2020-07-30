@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+/#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 Hello researcher, I want to play a game...This program uses things like GLOB and CDF reader from NASA and spacepy
