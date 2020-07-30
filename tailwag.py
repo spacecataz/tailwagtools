@@ -412,7 +412,77 @@ def get_crossing_info(epoch):
             
 
     return t_times
+
+
+def kp_finder_event(date):
+    '''
+    This function will take in a single datetime 
+    object and return the kp index value for it...
     
+    Parameters
+    ==========
+    date : datetime
+        Your single datetime event you will use to find the kp index
+
+
+
+    Returns
+    =======
+    Kpindex : float64
+        returned value from the array...
+    
+    '''
+    import spacepy.omni as om
+    import spacepy.time as spt 
+   
+  
+
+    timeticks = spt.Ticktock(date, 'ISO')
+    d = om.get_omni(timeticks, dbase='qd1min')
+
+    Kpindex = d['Kp'][0]
+
+    return Kpindex
+
+
+def kp_finder_range(t1, t2):
+    '''
+    This function takes in two datetime objects
+    and finds the range of kp indices as an array
+    
+    Parameters
+    ==========
+    t1 : datetime
+        The initial date as a datetime object
+        
+    t2 : datetime
+        The final date as a datetime object
+
+    Returns
+    =======
+    Kprange : array
+       the values of the kp index in an array...
+    '''
+    import datetime as dt
+    import spacepy.omni as om
+    import spacepy.time as spt 
+   
+  
+
+    ##################This is the list built with list comprehension that will build the list of the proper 
+    ###############dates to be feed into timeticks below....to get all of our data.......
+    isotime = [(t1 + dt.timedelta(minutes = x)).isoformat() 
+                                                        for x in range(int((t2-t1).total_seconds()//60))]
+
+    timeticks = spt.Ticktock(isotime, 'ISO')
+
+    d = om.get_omni(timeticks, dbase='qd1min')
+    
+    Kprange = d['Kp'][...]
+    
+    return Kprange
+
+ 
 def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_plots/'):
     '''
     Parameters
