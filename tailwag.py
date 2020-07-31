@@ -430,7 +430,6 @@ def kp_finder_event(date):
     =======
     Kpindex : float64
         returned value from the array...
-    
     '''
     import spacepy.omni as om
     import spacepy.time as spt 
@@ -441,6 +440,7 @@ def kp_finder_event(date):
     d = om.get_omni(timeticks, dbase='qd1min')
 
     Kpindex = d['Kp'][0]
+    
 
     return Kpindex
 
@@ -461,7 +461,10 @@ def kp_finder_range(t1, t2):
     Returns
     =======
     Kprange : array
-       the values of the kp index in an array...
+       the values of the kp in an array...
+       
+    UTCrnge : array
+       the values of the time  in an array...
     '''
     import datetime as dt
     import spacepy.omni as om
@@ -479,8 +482,9 @@ def kp_finder_range(t1, t2):
     d = om.get_omni(timeticks, dbase='qd1min')
     
     Kprange = d['Kp'][...]
+    UTCrnge = d['UTC'][...]
     
-    return Kprange
+    return Kprange, UTCrnge
 
  
 def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_plots/'):
