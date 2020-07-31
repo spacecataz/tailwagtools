@@ -27,6 +27,10 @@ import spacepy.irbempy as ib
 import spacepy.time as spt
 import spacepy.coordinates as spc
 import tailwag as tw
+
+
+
+
 #######################################################################################
 
 #### Prepare to plot:
@@ -42,11 +46,14 @@ def main():
     print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
     print(spacepy.plot.available(returnvals = False))
     
-    
+    print()
     
     
     ####  swiping the event points from the excel file that were gonna use
     Event_Data = pd.read_excel("Event_Points.xlsx", header = 0)
+    
+    
+    
 
 
     ####  getting three arrays: Point_list as strings, Date_List as datetimes, and the used cluster satellite
@@ -54,6 +61,11 @@ def main():
     Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
     Sat_List   = Event_Data['USED SAT']
     Op_List    = Event_Data['Operation']
+   
+   
+  
+     
+ 
     
        
     for (a, b, c) in zip(Date_List, Sat_List, Op_List):
@@ -61,6 +73,11 @@ def main():
             continue
         else:
             fig, ax1, ax2, ax3, ax4, ax5, n = tw.fusion(a, b, 12, outdir = 'fusion_plots/')
+            
+            
+            
+            
+           
         
         
         
