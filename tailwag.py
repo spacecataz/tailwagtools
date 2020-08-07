@@ -486,6 +486,68 @@ def kp_finder_range(t1, t2):
     return Kprange, UTCrnge
 
 
+def Vz_finder_range(date_str, date_obj, int_hours):
+    '''
+    This function takes in two datetime objects
+    and finds the range of kp indices as an array
+    
+    Parameters
+    ==========
+    t1 : datetime
+        The initial date as a datetime object
+        
+    t2 : datetime
+        The final date as a datetime object
+
+    Returns
+    =======
+    Kprange : array
+       the values of the kp in an array...
+       
+    UTCrnge : array
+       the values of the time  in an array...
+    '''
+
+    import datetime as dt
+    from datetime import datetime  
+    import numpy as np
+    import omni as omni
+ 
+   
+    ##  Create and print the filename that is going to be passed to get
+    ##  OMNI data...
+    filename = "OMNI_1min_" + date_str[:7].replace("-", "_")
+    print(filename)
+    
+    
+    ####HERE WE CREATE THE START AND END TIMES AS DATETIME OBJECTS, THEY WILL DECREASE AND INCREASE WITH THE LOOP BY N HOURS#######
+    start_Time = date_obj - dt.timedelta(hours = int_hours)
+    end_Time   = date_obj + dt.timedelta(hours = int_hours)
+        
+        
+    ##  Creating the OMNI dictionary.....
+    OMNI_dic = omni.read_ascii(filename)
+    
+    
+    ## Create an empty dictionary that we are going to use to fill
+    ## with our usefull masked values......
+    data_dic = {}
+        
+        
+    # Create the mask that we are about to use to filter values...
+    mask = (OMNI_dic['time']>=start_Time) & (OMNI_dic['time']<=end_Time) 
+        
+       
+    ##getting our values with the mask using list comprehension....
+    for x in ['time', 'Vz Velocity']:
+        data_dic[x] = OMNI_dic[x][mask]
+        data_dic['Vz Velocity'] = OMNI_dic['Vz Velocity'][mask]
+    ##compute the average of the Vz Velocity array      
+    avg = np.mean(data_dic['Vz Velocity'])   
+    
+    return avg
+
+
 def read_ascii(filename):
     '''
     Load data into dictionary.
