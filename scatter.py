@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt; plt.ion() #interactive matplotlib
 import pandas as pd
 import numpy as np
-from tailwagtools import tailwag
+import tailwag
 import datetime as dt
 import scipy
 from scipy import stats
@@ -24,12 +24,11 @@ def read_Event_Points(filename):
         
     Example
     _______
-    >>> from tailwagtools import scatter
-    >>> events['epoch'] = scatter.read_Event_Points("tailwagtools/Event_Points.xlsx")
-    >>> print(events['epoch'])
-    {'epoch' : [datetime.datetime(...),...]}
-    
-    Returns array of datetime objects stored in events['epoch']
+    >>> # From inside the tailwagtools directory...
+    >>> import scatter
+    >>> epochs = scatter.read_Event_Points("Event_Points.xlsx")
+    >>> print(epochs)
+    [datetime.datetime(2001, 8, 15, 9, 9, 38), ... ]
     
     '''
 
@@ -46,7 +45,7 @@ def read_Event_Points(filename):
     return epoch
 
 
-def get_crossing_info(epoch):
+def get_crossing_info(epoch, debug=False):
     '''
     For a given crossing epoch, calculate and return:
     - the crossing time for all Tsgyanenko models under consideration
@@ -57,6 +56,11 @@ def get_crossing_info(epoch):
     ----------
     epoch : datetime.datetime
        The time of the cluster crossing of the plasmasheet.
+
+    Other Parameters
+    ----------------
+    debug : boolean
+       Turn on debug information.  Defaults to False
 
     Returns
     -------
@@ -96,7 +100,13 @@ def get_crossing_info(epoch):
     tdelt_after = t_cis[index_cluster+1]-t_cluster #timedelta using t_cis more than t_cluster
     if tdelt_before > tdelt_after: #compare the two, if the timedelta of t_cis less > t_cis more, then change index_cluster to the location of t_cis more
         index_cluster = index_cluster+1
-    
+
+    # Print some debug information:
+    if debug:
+        print('----------DEBUG----------')
+        print(f'\tCrossing epoch from file: {epoch}')
+        print(f'\tCrossing time from CIS epochs: {t_cis[index_cluster]}')
+        
     
     #Calculate Cluster average density after
     loc = t_cis>t_cis[index_cluster] #location after Cluster crossing
@@ -110,31 +120,58 @@ def get_crossing_info(epoch):
     #Get crossing time and densities for each Tsyg model
     t_times = {} #container for times
     index_Tsyg = {}
-    Tsyg_after = {} #container for densities after crossing
-    Tsyg_before = {} #container for densities before crossing
 
     for vers in ['T89','T96', 'T01STORM']:
         #Obtain Tsyg crossing times
         t, b_Tsyg = tailwag.gen_sat_tsyg(data, extMag = vers) #get Tsyg data
         loc = np.abs(b_Tsyg[:,0])==np.abs(b_Tsyg[:,0]).min() #location of crossing
-        t_times[vers] = t[loc] #Tsyg crosing time
-        
-        #Obtain average plasma densities before/after for each Tsyg crossing time
-        index_Tsyg[vers] = np.where(t_cis<=t_times[vers])[0][-1] #locate CIS time <= Tsyg crossing time
-        tdelt_before = t_times[vers]-t_cis[index_Tsyg[vers]] #timedelta using t_cis less than t_cluster
-        tdelt_after = t_cis[index_Tsyg[vers]+1]-t_times[vers] #timedelta using t_cis more than t_cluster
-        if tdelt_before > tdelt_after: #compare the two, if the timedelta of t_cis less > t_cis more, then change index_cluster to the location of t_cis more
-            index_Tsyg[vers] = index_Tsyg[vers]+1
-        
-        #THIS PART DOES NOT WORK ):
-        #Calculate Tsyg average density after
-        loc = t_cis>t_cis[index_Tsyg[vers]] #location after Cluster crossing
-        Tsyg_after[vers] = h_dens[loc].mean() + o_dens[loc].mean() #average H+ density + average O+ density
-        
-        #Calculate Tsyg average density before
-        loc = t_cis<t_cis[index_Tsyg] #location before Cluster crossing
-        Tsyg_before[vers] = h_dens[loc].mean() + o_dens[loc].mean() #average H+ density + average O+ density
+        # It's possible to have no results from a given Tsyg model.
+        # If that's the case, return NaNs.
+        if t[loc].size > 0:
+            t_times[vers] = t[loc][0] #Tsyg crosing time
+        else:
+            t_times[vers] = np.nan
 
-    return(t_cluster, t_times, cluster_after, cluster_before, Tsyg_before, Tsyg_after)
+    return(t_cluster, t_times, cluster_after, cluster_before)
 
 
+if __name__ == '__main__':
+    '''
+    If run as script, the following commands will execute.
+    '''
+
+    # Let's set up a quick demo for now:
+    # Goal: have entire plotting/statistical analysis run here.
+
+    # Get crossing times from Excel file.
+    all_epochs = read_Event_Points("Event_Points.xlsx")
+
+    # Create a container for the data.  GOAL: have vectors to easily plot!
+    # We can keep adding entries here for things like Vz, F10.7, etc. etc.
+    data = {'epoch':[], 'dtT89':[], 'dDensH':[], 'dDens':[], 'dDensO':[],
+            'dtT96':[], 'dtT01STORM':[]}
+
+    # Now, loop through all events and gather information:
+    for i, t in enumerate(all_epochs[:10]):
+
+        print(f'****WORKING ON CROSSING #{i} AT {t}*****')
+        # Get crossing info from cool function:
+        t_clus, t_times, c_after, c_before = get_crossing_info(t)
+        
+        # Store info into our big data container:
+        data['epoch'].append(t)
+        for vers in ['T89','T96', 'T01STORM']:
+            if type( t_times[vers] ) != type(t):
+                data['dt'+vers].append(np.nan)
+            else:
+                data['dt'+vers].append( (t - t_times[vers]).total_seconds()/60. ) #in minutes!
+        data['dDens'].append( c_before - c_after )
+
+    # If we're smart, we're saving this data to an external file.
+    # We then make the plot and analysis stuff SEPARATELY because
+    # processing the data takes waaayyy too long.
+    # Save the data as a pickle.
+    # see here: https://nbviewer.jupyter.org/url/www-personal.umich.edu/~dwelling/python/notebooks/primer03_fileIO.ipynb
+
+    
+    # Add verification plotting here!
