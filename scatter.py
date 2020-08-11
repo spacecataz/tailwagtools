@@ -24,9 +24,10 @@ def read_Event_Points(filename):
         
     Example
     _______
-    ln[1]: from tailwagtools import scatter
-    ln[2]: events['epoch'] = scatter.read_Event_Points("tailwagtools/Event_Points.xlsx")
-    Out[2]: {'epoch' : [datetime.datetime(...),...]}
+    >>> from tailwagtools import scatter
+    >>> events['epoch'] = scatter.read_Event_Points("tailwagtools/Event_Points.xlsx")
+    >>> print(events['epoch'])
+    {'epoch' : [datetime.datetime(...),...]}
     
     Returns array of datetime objects stored in events['epoch']
     
@@ -67,12 +68,15 @@ def get_crossing_info(epoch):
 
     Example
     _______
-    ln[1]: epoch = dt.datetime(2001,8,19,20,0,0)
-    ln[2]: t_times = scatter.get_crossing_info(epoch)
-    Out[2]: {'T89': dmarray([datetime.datetime(...)], dtype=object),
-            'T96': dmarray([datetime.datetime(...)], dtype=object),
-            'T01STORM': dmarray([datetime.datetime(...)], dtype=object)
-            }
+    >>> import datetime as dt
+    >>> import scatter
+    >>> epoch = dt.datetime(2001,8,19,20,0,0)
+    >>> t_times = scatter.get_crossing_info(epoch)
+    >>> print(t_times)
+    {'T89': dmarray([datetime.datetime(...)], dtype=object),
+        'T96': dmarray([datetime.datetime(...)], dtype=object),
+        'T01STORM': dmarray([datetime.datetime(...)], dtype=object)
+        }
     '''
 
     #Fetch cluster data given an epoch
