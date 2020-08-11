@@ -36,11 +36,24 @@ def read_Event_Points(filename):
     event_data = pd.read_excel(filename, header = 0)
     #Example: event_data = pd.read_excel("tailwagtools/Event_Points.xlsx", header = 0)
     
-    #Separate points list
+    #Read the points as strings as a string to decide what to do with the point
     point_list = event_data['Narrowed Point']
+    op_List    = event_data['Operation']
+    
+    
+    ###create the epoch array that were gonna need for the datetimes
+    epoch = []
+    
+    ##loop through the dates in point_list and decide whether to add them
+    ##or not based on the op_list variable...needs to be "SKIP".....
+    for (date, op) in zip(point_list, op_List):
+        if op == "SKIP":
+            continue
+        else:
+            epoch.append(dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f'))
     
     #Convert point to datetime epoch
-    epoch  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in point_list]
+    ##epoch  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in point_list]
     
     return epoch
 
