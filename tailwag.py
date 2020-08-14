@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+.#!/usr/bin/env python
 '''
 A module for performing analysis of outflow wagging the tail.
 '''
@@ -671,7 +671,7 @@ def to_pickle(data_dic, picklename):
 
 
  
-def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_plots/'):
+def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True, outdir = 'fusion_plots/'):
     '''
     Parameters
     ----------
@@ -702,6 +702,7 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_p
     from matplotlib import pyplot as plt
     import os
     import spacepy
+    import scatter
     
     from spacepy.plot import applySmartTimeTicks, style, add_arrows
     from spacepy import pybats
@@ -754,6 +755,24 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_p
     ind_x = x[round(len(FGM_time)/2)]
     ind_y = y[round(len(FGM_time)/2)]
     ind_z = z[round(len(FGM_time)/2)]
+    
+    
+    ### Adding a section here to get the densitiies for before and after the crossing....
+    ### H is first, O is second...
+    if add_scatter:
+        t_cluster, cross_times, cluster_after, cluster_before = scatter.get_crossing_info(Date_date)
+        initial_h = cluster_before[0]
+        initial_o = cluster_before[1]
+        final_h   = cluster_after[0]
+        final_o   = cluster_after[1]
+        cross_T89 = cross_times['T89']
+        cross_T96 = cross_times['T96']
+        cross_T01 = cross_times['T01STORM']
+        
+       
+            
+    
+    
 
     ###################################################################################
     #        PLOTTING SECTION
@@ -835,6 +854,21 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, outdir = 'fusion_p
         ax5.grid(axis='y')
         #ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
         applySmartTimeTicks(ax4, [start_Time, end_Time])  
+        
+        
+        if add_scatter:
+            ax4.hlines(initial_o, start_Time, Date_date, lw=1, color='g', linestyle = '--')
+            ax4.hlines(final_o, Date_date, end_Time, lw=1, color='g', linestyle = '--')
+            ax5.hlines(initial_h, start_Time, Date_date, lw=1, color='r', linestyle = '--')
+            ax5.hlines(final_h, Date_date, end_Time, lw=1, color='r', linestyle = '--')
+            ax3.axvline(x = cross_T89, ymin = 0, ymax = 1, lw=1, color = 'green', linestyle = '--')
+            ax3.axvline(x = cross_T96, ymin = 0, ymax = 1, lw=1, color = 'orange', linestyle = '--')
+            ax3.axvline(x = cross_T01, ymin = 0, ymax = 1, lw=1, color = 'crimson', linestyle = '--')
+                  
+        
+        
+        
+        
     
         
         ##### With these 2 blocks were adding planet earth to our postion graphs
