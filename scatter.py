@@ -8,6 +8,19 @@ import scipy
 from scipy import stats
 import math
 
+
+    
+def to_pickle(data_dic, picklename):
+   
+   import pickle
+
+   pickle_out = open(picklename, "wb")
+   pickle.dump(data_dic, pickle_out)
+   pickle_out.close()
+
+
+
+
 def read_Event_Points(filename):
     '''
     For the Event_Points data file, read the Excel file via Pandas and convert the list of points into an epoch.
@@ -179,6 +192,14 @@ if __name__ == '__main__':
             else:
                 data['dt'+vers].append( (t - t_times[vers]).total_seconds()/60. ) #in minutes!
         data['dDens'].append( c_before - c_after )
+        
+    to_pickle(data,"tastypickle")
+
+    
+    
+   
+
+
 
     # If we're smart, we're saving this data to an external file.
     # We then make the plot and analysis stuff SEPARATELY because
