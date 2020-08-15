@@ -71,7 +71,7 @@ def read_Event_Points(filename):
     return epoch
 
 
-def get_crossing_info(epoch, debug=False):
+def get_crossing_info(epoch, check_graph = False, debug=False):
     '''
     For a given crossing epoch, calculate and return:
     - the crossing time for all Tsgyanenko models under consideration
@@ -92,8 +92,17 @@ def get_crossing_info(epoch, debug=False):
     -------
     t_cluster : datetime.datetime
         Time of crossing observed in Cluster
-    t_times : datetime.datetime
+    t_times : array of datetime.datetime
         Time of crossing observed in T89, T96, AND T01STORM
+        T89 =  t_times[0], T96 = t_times[1], AND T01STORM = t_times[2]      
+    cluster_before : array of float values
+        An array of values that yield the average value before 
+        the time crossing.. ...
+        cluster_before[0] = H value, cluster_before[1] = O value
+    cluster_after : array of float values
+        An array of values that yield the average value after 
+        the time crossing.. ...
+        cluster_after[0] = H value, cluster_after[1] = O value
 
 
     Example
@@ -133,32 +142,47 @@ def get_crossing_info(epoch, debug=False):
         print(f'\tCrossing epoch from file: {epoch}')
         print(f'\tCrossing time from CIS epochs: {t_cis[index_cluster]}')
         
+    if check_graph == True:
+        #Calculate Cluster average density after
+        loc = t_cis>t_cis[index_cluster] #location after Cluster crossing
+        cluster_o_after = o_dens[loc].mean() 
+        cluster_h_after = h_dens[loc].mean() 
     
-    #Calculate Cluster average density after
-    loc = t_cis>t_cis[index_cluster] #location after Cluster crossing
-    cluster_after = h_dens[loc].mean() + o_dens[loc].mean() #average H+ density + average O+ density
+        #Calculate Cluster average density before
+        loc = t_cis<t_cis[index_cluster] #location before Cluster crossing
+        cluster_o_before = o_dens[loc].mean() #average H+ density + average O+ density
+        cluster_h_before = h_dens[loc].mean() #average H+ density + average O+ density
+        
+        return(cluster_h_before, cluster_o_before, cluster_h_after, cluster_o_after)
     
-    #Calculate Cluster average density before
-    loc = t_cis<t_cis[index_cluster] #location before Cluster crossing
-    cluster_before = h_dens[loc].mean() + o_dens[loc].mean() #average H+ density + average O+ density
+    else:
+        
     
+        #Calculate Cluster average density after
+        loc = t_cis>t_cis[index_cluster] #location after Cluster crossing
+        cluster_after = h_dens[loc].mean() + o_dens[loc].mean() #average H+ density + average O+ density
     
-    #Get crossing time and densities for each Tsyg model
-    t_times = {} #container for times
-    index_Tsyg = {}
+        #Calculate Cluster average density before
+        loc = t_cis<t_cis[index_cluster] #location before Cluster crossing
+        cluster_before = h_dens[loc].mean() + o_dens[loc].mean() #average H+ density + average O+ density
+    
 
-    for vers in ['T89','T96', 'T01STORM']:
-        #Obtain Tsyg crossing times
-        t, b_Tsyg = tailwag.gen_sat_tsyg(data, extMag = vers) #get Tsyg data
-        loc = np.abs(b_Tsyg[:,0])==np.abs(b_Tsyg[:,0]).min() #location of crossing
-        # It's possible to have no results from a given Tsyg model.
-        # If that's the case, return NaNs.
-        if t[loc].size > 0:
-            t_times[vers] = t[loc][0] #Tsyg crosing time
-        else:
-            t_times[vers] = np.nan
+        #Get crossing time and densities for each Tsyg model
+        t_times = {} #container for times
+        index_Tsyg = {}
 
-    return(t_cluster, t_times, cluster_after, cluster_before)
+        for vers in ['T89','T96', 'T01STORM']:
+            #Obtain Tsyg crossing times
+            t, b_Tsyg = tailwag.gen_sat_tsyg(data, extMag = vers) #get Tsyg data
+            loc = np.abs(b_Tsyg[:,0])==np.abs(b_Tsyg[:,0]).min() #location of crossing
+            # It's possible to have no results from a given Tsyg model.
+            # If that's the case, return NaNs.
+            if t[loc].size > 0:
+                t_times[vers] = t[loc][0] #Tsyg crosing time
+            else:
+                t_times[vers] = np.nan
+
+        return(t_cluster, t_times, cluster_after, cluster_before)
 
 
 if __name__ == '__main__':
@@ -194,11 +218,6 @@ if __name__ == '__main__':
         data['dDens'].append( c_before - c_after )
         
     to_pickle(data,"tastypickle")
-
-    
-    
-   
-
 
 
     # If we're smart, we're saving this data to an external file.
