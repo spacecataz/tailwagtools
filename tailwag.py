@@ -1,4 +1,4 @@
-.#!/usr/bin/env python
+#!/usr/bin/env python
 '''
 A module for performing analysis of outflow wagging the tail.
 '''
@@ -8,6 +8,108 @@ install_dir = '/'.join(__loader__.path.split('/')[:-1])+'/'
 
 # A map of the header for a CSV info file:
 table_map = {'start':4,'end':5,'epoch':3,'kp':7,'f107':9,'cis':10,'fgm':11}
+
+def get_crossing_info(epoch, get_cross = True, get_dens = True, debug=False):
+    '''
+    For a given crossing epoch, calculate and return:
+    - the crossing time for all Tsgyanenko models under consideration
+    - the average density before and after the cluster crossing
+      for both H+ and O+
+
+    Parameters
+    ----------
+    epoch : datetime.datetime
+       The time of the cluster crossing of the plasmasheet.
+
+    Other Parameters
+    ----------------
+    debug : boolean
+       Turn on debug information.  Defaults to False
+
+    Returns
+    -------
+    t_cluster : datetime.datetime
+        Time of crossing observed in Cluster
+    t_times : array of datetime.datetime
+        Time of crossing observed in T89, T96, AND T01STORM
+        T89 =  t_times[0], T96 = t_times[1], AND T01STORM = t_times[2]      
+    cluster_before : array of float values
+        An array of values that yield the average value before 
+        the time crossing.. ...
+        cluster_before[0] = H value, cluster_before[1] = O value
+    cluster_after : array of float values
+        An array of values that yield the average value after 
+        the time crossing.. ...
+        cluster_after[0] = H value, cluster_after[1] = O value
+
+
+    Example
+    _______
+    >>> import datetime as dt
+    >>> import scatter
+    >>> epoch = dt.datetime(2001,8,19,20,0,0)
+    >>> t_times = scatter.get_crossing_info(epoch)
+    >>> print(t_times)
+    {'T89': dmarray([datetime.datetime(...)], dtype=object),
+        'T96': dmarray([datetime.datetime(...)], dtype=object),
+        'T01STORM': dmarray([datetime.datetime(...)], dtype=object)
+        }
+    '''
+
+    #Fetch cluster data given an epoch
+    data = tailwag.fetch_cluster_data(epoch) #get Cluster data
+    loc = np.abs(data['b'][:,0])==np.abs(data['b'][:,0]).min() #location of Cluster crossing
+    t_cluster = data['fgm_time'][loc] #Cluster crossing time
+    
+    #Fetch cluster plasma data
+    t_cis = data['cis_time'] #get Cluster CIS times
+    h_dens = data['dens_h']
+    o_dens = data['dens_o']
+
+    #Location t_cis closest to t_cluster
+    #MXB notes: should we change this into tricky indexing instead of np.where? this is probably too chonky
+    index_cluster = np.where(t_cis<=t_cluster)[0][-1] #locate CIS time <= cluster crossing time
+    tdelt_before = t_cluster-t_cis[index_cluster] #timedelta using t_cis less than t_cluster
+    tdelt_after = t_cis[index_cluster+1]-t_cluster #timedelta using t_cis more than t_cluster
+    if tdelt_before > tdelt_after: #compare the two, if the timedelta of t_cis less > t_cis more, then change index_cluster to the location of t_cis more
+        index_cluster = index_cluster+1
+
+    # Print some debug information:
+    if debug:
+        print('----------DEBUG----------')
+        print(f'\tCrossing epoch from file: {epoch}')
+        print(f'\tCrossing time from CIS epochs: {t_cis[index_cluster]}')
+        
+    
+    #Calculate Cluster average density after
+    loc = t_cis>t_cis[index_cluster] #location after Cluster crossing
+    cluster_h_after = h_dens[loc].mean() 
+    cluster_o_after = o_dens[loc].mean() 
+    
+    #Calculate Cluster average density before
+    loc = t_cis<t_cis[index_cluster] #location before Cluster crossing
+    cluster_h_before = h_dens[loc].mean()
+    cluster_o_before = o_dens[loc].mean() 
+        
+        
+    
+    
+   #Get crossing time and densities for each Tsyg model
+    t_times = {} #container for times
+    index_Tsyg = {}
+
+    for vers in ['T89','T96', 'T01STORM']:
+        #Obtain Tsyg crossing times
+        t, b_Tsyg = tailwag.gen_sat_tsyg(data, extMag = vers) #get Tsyg data
+        loc = np.abs(b_Tsyg[:,0])==np.abs(b_Tsyg[:,0]).min() #location of crossing
+        # It's possible to have no results from a given Tsyg model.
+        # If that's the case, return NaNs.
+        if t[loc].size > 0:
+            t_times[vers] = t[loc][0] #Tsyg crosing time
+        else:
+            t_times[vers] = np.nan
+
+    return(t_cluster, t_times, cluster_h_before, cluster_o_before, cluster_h_after, cluster_o_after)
 
 def _parse_table_line(parts):
     '''
@@ -167,7 +269,6 @@ def gen_sat_tsyg(cluster_data, extMag='T89', dbase='qd1min'):
     # added by spacepy (via .UTC and .data, which give values only.)
     return(time.UTC, b_out.data)
 
-
 def get_cluster_filename(epoch, sat=1):
     '''
     Given an epoch, return the CIS and FGM Cluster files that contain the
@@ -210,8 +311,7 @@ def get_cluster_filename(epoch, sat=1):
         raise FileNotFoundError('No matching FGM file for this time.')
 
     return (fgm, cis)
-
-    
+  
 def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
                        coords='GSM', debug=False, prune=True):
     '''
@@ -366,54 +466,6 @@ def fetch_cluster_data(epoch, sat=1, tspan=12, kernel_size=7,
     
     return data
 
-def get_crossing_info(epoch):
-    '''
-    For a given crossing epoch, calculate and return the following:
-
-    - The crossing time for all Tsgyanenko models under consideration
-    - The average density before and after the cluster crossing
-      for both H+ and O+.
-
-    Parameters
-    ----------
-    epoch : datetime.datetime
-       The time of the cluster crossing of the plasmasheet.
-
-    Other Parameters
-    ----------------
-    bsens : float
-       The maximum value of Bx in Tsyg results that is considered
-       to be a crossing.  Defaults to 1 nT.
-
-    Returns
-    -------
-
-    Examples
-    --------
-    '''
-
-    # Get cluster data associated with epoch:
-    data = fetc_cluster_data(epoch, bsens=1)
-
-    # Get crossing time for each Tsyg model.
-    # This is a dictionary of datetimes.
-    t_times = {} # Container for results.
-
-    for vers in ['T89','T96', 'T01STORM']:
-        # DTW notes: this may fail if a model is not available.
-        t, b01 = tailwag.gen_sat_tsyg(data, extMag=vers) # get Tsyg data
-        loc = np.abs(b01[:,0])==np.abs(b01[:,0]).min() # location of crossing
-        # Test to see if crossing data is legit:
-        # If there are no points found, then there was no Tsyg model data
-        # If the minimum b_field is not reasonably close to zero, then
-        # there is a data gap over the crossing.
-        if loc.size == 0 or np.abs(b01[loc,0])>bsens:
-            t_times[vers] = np.nan
-            
-
-    return t_times
-
-
 def kp_finder_event(date):
     '''
     This function will take in a single datetime 
@@ -443,7 +495,6 @@ def kp_finder_event(date):
     
 
     return Kpindex
-
 
 def kp_finder_range(t1, t2):
     '''
@@ -484,7 +535,6 @@ def kp_finder_range(t1, t2):
     UTCrnge = d['UTC'][...]
     
     return Kprange, UTCrnge
-
 
 def Vz_finder_range(date_str, date_obj, int_hours):
     '''
@@ -549,7 +599,6 @@ def Vz_finder_range(date_str, date_obj, int_hours):
     avg = np.mean(data_dic['Vz Velocity'])   
     
     return avg
-
 
 def read_ascii(filename):
     '''
@@ -668,9 +717,6 @@ def to_pickle(data_dic, picklename):
     pickle.dump(data_dic, pickle_out)
     pickle_out.close()
 
-
-
- 
 def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True, outdir = 'fusion_plots/'):
     '''
     Parameters
@@ -760,11 +806,13 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     ### Adding a section here to get the densitiies for before and after the crossing....
     ### H is first, O is second...
     if add_scatter:
-        t_cluster, cross_times, cluster_after, cluster_before = scatter.get_crossing_info(Date_date)
-        initial_h = cluster_before[0]
-        initial_o = cluster_before[1]
-        final_h   = cluster_after[0]
-        final_o   = cluster_after[1]
+        t_cluster, cross_times, cluster_h_before, cluster_o_before, cluster_h_after, cluster_o_after = scatter.split_crossing_info(Date_date)
+        
+            
+       ## initial_h = cluster_before[0]
+       ## initial_o = cluster_before[1]
+        ##final_h   = cluster_after[0]
+        ##final_o   = cluster_after[1]
         cross_T89 = cross_times['T89']
         cross_T96 = cross_times['T96']
         cross_T01 = cross_times['T01STORM']
@@ -857,10 +905,10 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
         
         
         if add_scatter:
-            ax4.hlines(initial_o, start_Time, Date_date, lw=1, color='g', linestyle = '--')
-            ax4.hlines(final_o, Date_date, end_Time, lw=1, color='g', linestyle = '--')
-            ax5.hlines(initial_h, start_Time, Date_date, lw=1, color='r', linestyle = '--')
-            ax5.hlines(final_h, Date_date, end_Time, lw=1, color='r', linestyle = '--')
+            ax4.hlines(cluster_o_before, start_Time, Date_date, lw=1, color='g', linestyle = '--')
+            ax4.hlines(cluster_o_after, Date_date, end_Time, lw=1, color='g', linestyle = '--')
+            ax5.hlines(cluster_h_before, start_Time, Date_date, lw=1, color='r', linestyle = '--')
+            ax5.hlines(cluster_h_after, Date_date, end_Time, lw=1, color='r', linestyle = '--')
             ax3.axvline(x = cross_T89, ymin = 0, ymax = 1, lw=1, color = 'green', linestyle = '--')
             ax3.axvline(x = cross_T96, ymin = 0, ymax = 1, lw=1, color = 'orange', linestyle = '--')
             ax3.axvline(x = cross_T01, ymin = 0, ymax = 1, lw=1, color = 'crimson', linestyle = '--')
@@ -890,6 +938,132 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     #### Return dat shit
     return fig, ax1, ax2, ax3, ax4, ax5, n
     
+def wind_graph(Date_List, Op_List):   
+    '''
+    
+
+    Parameters
+    ----------
+    Date_List : Array of Datetime ofjects
+        This should be the array of datetime objects that is read
+        from the excel file....
+    Op_List : Array of string objects
+        This should be the array read from the excel file to determine 
+        whether to skip the datetime and its calculations...
+
+    Returns
+    -------
+    NOOOOTTTHHHHHIIIIIINNNNGGGG!!!!!!
+
+    '''
+    
+   
+    import datetime as dt
+    from datetime import datetime  
+    from matplotlib import pyplot as plt   
+    import numpy as np   
+    import tailwag as tw
+    import scatter
+   
+    ## SET UP THE ARRAY THAT WERE GOING TO NEED FOR PLOTTING
+    Vz_89Values       = []
+    Vz_96Values       = []
+    Vz_01Values       = []
+    T89_diff_Values   = []
+    T96_diff_Values   = []
+    T01_diff_Values   = []
+    
+    
+    for (a, c) in zip(Date_List, Op_List):
+         if c == "SKIP":
+            continue
+         else:
+             print(type(a))
+             print(a)   
+             
+             
+             ##### STEP 1 GET ALL THE DATA THAT WERE GONNA NEED ############
+             ### FETCH TSYG DATA HERE!  
+             ######## STEP 2 START APPENDING THE VALUES TO THE ARRAYS #############
+             my_clus, my_ttimes, bork_after, bork_before = scatter.get_crossing_info(a, debug=False)
+             Vz_val = tw.Vz_finder_range(str(my_clus[0]), my_clus[0], 2)
+             print("bork")
+             
+             
+             print("BRO THIS IS THE cluster date:  " + str(my_clus[0]))
+             print("YO BRO THIS IS THE DATE FROM T89:  " + str(my_ttimes['T89']))
+             print("YO BRO THIS IS THE DATE FROM T96:  " + str(my_ttimes['T96']))
+             print("YO BRO THIS IS THE DATE FROM T01storm:  " + str(my_ttimes['T01STORM']))
+             
+             if isinstance(my_ttimes['T89'], dt.datetime):
+                 print("AWWWEEE SHEEEET DAWG 89 is A DATETIME")
+                 timediff89 = my_clus[0] - my_ttimes['T89']
+                 minutediff89 = int(timediff89.total_seconds() / 60)                
+                 print("The time difference (in minutes) for T89 is:   " + str(minutediff89))
+                 T89_diff_Values.append(minutediff89)
+                 Vz_89Values.append(Vz_val)
+                 
+             else:
+                 print("THIS IS ACTUALLY A NAN")
+                 
+             if isinstance(my_ttimes['T96'], dt.datetime):
+                 print("AWWWEEE SHEEEET DAWG 89 is A DATETIME")
+                 timediff96 = my_clus[0] - my_ttimes['T96']
+                 minutediff96 = int(timediff96.total_seconds() / 60)
+                 print("The time difference (in minutes) for T89 is:   " + str(minutediff96))
+                 T96_diff_Values.append(minutediff96)
+                 Vz_96Values.append(Vz_val)
+                 
+             else:
+                 print("THIS IS ACTUALLY A NAN")
+    
+             if isinstance(my_ttimes['T01STORM'], dt.datetime):
+                 print("AWWWEEE SHEEEET DAWG 89 is A DATETIME")
+                 timediff01 = my_clus[0] - my_ttimes['T01STORM']
+                 minutediff01 = int(timediff01.total_seconds() / 60)          
+                 print("The time difference (in minutes) for T89 is:   " + str(minutediff01))
+                 T01_diff_Values.append(minutediff01)
+                 Vz_01Values.append(Vz_val)
+                 
+                 
+             else:
+                 print("THIS IS ACTUALLY A NAN")
+    
+    
+    
+    for (a, b) in zip(Vz_89Values, T89_diff_Values):
+        print(str(a) + "          " + str(b))
+        
+    ######## ###########STEP 3 LETS MAKE THAT GRAPH!!!!!! ###############################
+             
+   
+    plt.scatter(Vz_89Values, T89_diff_Values, color='green',  label='T89', alpha=0.5)    
+    plt.scatter(Vz_96Values, T96_diff_Values, color='orange', label='T96', alpha=0.5)
+    plt.scatter(Vz_01Values, T01_diff_Values, color='crimson',label='T01', alpha=0.5)
+    
+    trend89 = np.polyfit(Vz_89Values, T89_diff_Values, 1)
+    trendpoly89 = np.poly1d(trend89) 
+    plt.plot(Vz_89Values,trendpoly89(Vz_89Values), color = 'green', lw=.5)
+    
+    trend96 = np.polyfit(Vz_96Values, T96_diff_Values, 1)
+    trendpoly96 = np.poly1d(trend96) 
+    plt.plot(Vz_96Values,trendpoly96(Vz_96Values), color = 'orange', lw=.5)
+    
+    trend01 = np.polyfit(Vz_01Values, T01_diff_Values, 1)
+    trendpoly01 = np.poly1d(trend01) 
+    plt.plot(Vz_01Values,trendpoly01(Vz_01Values), color = 'crimson', lw=.5)
+    
+    
+    
+    
+    plt.title('Vz and time Differential graph')
+    plt.xlabel('Vz Values')
+    plt.ylabel('Time differentials')
+    plt.legend(loc='best')
+    plt.show()
+    
+    return
+
 # This next block only executes if the code is run as a
 # script and not a module (e.g., "run tailway" vs. "import tailwag").
 if __name__ == '__main__':
