@@ -9,7 +9,7 @@ install_dir = '/'.join(__loader__.path.split('/')[:-1])+'/'
 # A map of the header for a CSV info file:
 table_map = {'start':4,'end':5,'epoch':3,'kp':7,'f107':9,'cis':10,'fgm':11}
 
-def get_crossing_info(epoch, get_cross = True, get_dens = True, debug=False):
+def get_crossing_info(epoch, debug=False):
     '''
     For a given crossing epoch, calculate and return:
     - the crossing time for all Tsgyanenko models under consideration
@@ -806,16 +806,18 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     ### Adding a section here to get the densitiies for before and after the crossing....
     ### H is first, O is second...
     if add_scatter:
-        t_cluster, cross_times, cluster_h_before, cluster_o_before, cluster_h_after, cluster_o_after = scatter.split_crossing_info(Date_date)
+        print("bork")
+        print(Date_date)
+        t_cluster, t_times, cluster_after, cluster_before = scatter.split_crossing_info(Date_date)
         
             
-       ## initial_h = cluster_before[0]
-       ## initial_o = cluster_before[1]
-        ##final_h   = cluster_after[0]
-        ##final_o   = cluster_after[1]
-        cross_T89 = cross_times['T89']
-        cross_T96 = cross_times['T96']
-        cross_T01 = cross_times['T01STORM']
+        initial_h = cluster_before[0]
+        initial_o = cluster_before[1]
+        final_h   = cluster_after[0]
+        final_o   = cluster_after[1]
+        cross_T89 = t_times['T89']
+        cross_T96 = t_times['T96']
+        cross_T01 = t_times['T01STORM']
         
        
             
@@ -905,10 +907,10 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
         
         
         if add_scatter:
-            ax4.hlines(cluster_o_before, start_Time, Date_date, lw=1, color='g', linestyle = '--')
-            ax4.hlines(cluster_o_after, Date_date, end_Time, lw=1, color='g', linestyle = '--')
-            ax5.hlines(cluster_h_before, start_Time, Date_date, lw=1, color='r', linestyle = '--')
-            ax5.hlines(cluster_h_after, Date_date, end_Time, lw=1, color='r', linestyle = '--')
+            ax4.hlines(initial_h, start_Time, Date_date, lw=1, color='g', linestyle = '--')
+            ax4.hlines(final_o, Date_date, end_Time, lw=1, color='g', linestyle = '--')
+            ax5.hlines(initial_o, start_Time, Date_date, lw=1, color='r', linestyle = '--')
+            ax5.hlines(final_h, Date_date, end_Time, lw=1, color='r', linestyle = '--')
             ax3.axvline(x = cross_T89, ymin = 0, ymax = 1, lw=1, color = 'green', linestyle = '--')
             ax3.axvline(x = cross_T96, ymin = 0, ymax = 1, lw=1, color = 'orange', linestyle = '--')
             ax3.axvline(x = cross_T01, ymin = 0, ymax = 1, lw=1, color = 'crimson', linestyle = '--')
@@ -1052,6 +1054,7 @@ def wind_graph(Date_List, Op_List):
     trend01 = np.polyfit(Vz_01Values, T01_diff_Values, 1)
     trendpoly01 = np.poly1d(trend01) 
     plt.plot(Vz_01Values,trendpoly01(Vz_01Values), color = 'crimson', lw=.5)
+          
     
     
     
