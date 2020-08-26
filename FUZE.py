@@ -43,22 +43,7 @@ import math
 
 ###################################################################################   
 
-def main():
-    print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
-    print(spacepy.plot.available(returnvals = False))
-    
-    print("Hello there, I wanna play a game")
-    print()
 
-    ####  swiping the event points from the excel file that were gonna use
-    Event_Data = pd.read_excel("Event_Points.xlsx", header = 0)
-    
-    ####  getting three arrays: Point_list as strings, Date_List as datetimes, and the used cluster satellite
-    Point_List = Event_Data['Narrowed Point']
-    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
-    Sat_List   = Event_Data['USED SAT']
-    Op_List    = Event_Data['Operation']
-   
    
     
     
@@ -83,7 +68,17 @@ def main():
     Sat_List   = Event_Data['USED SAT']
     Op_List    = Event_Data['Operation']
     
-    tw.wind_graph(Date_List, Op_List)
+    
+    
+    for (a, b, c) in zip(Date_List, Sat_List, Op_List):
+        if c == "SKIP":
+            continue
+        else:
+            tw.fusion(a, b, 12, add_tsyg=True, add_scatter = True, outdir = 'check_plots/')
+            
+        
+        
+    print("game over, the user wins")
     
         
     
