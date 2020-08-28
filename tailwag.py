@@ -1030,15 +1030,19 @@ def wind_graph(Date_List, Op_List):
                  
              else:
                  print("THIS IS ACTUALLY A NAN")
+                 
+ 
+                 
+                 
     
     
     
-    for (a, b) in zip(Vz_89Values, T89_diff_Values):
-        print(str(a) + "          " + str(b))
+    for (b, c, d, e, f, g) in zip(Vz_89Values, T89_diff_Values, Vz_96Values,  T96_diff_Values,  Vz_01Values,   T01_diff_Values):
+        print(str(b) + "   " + str(c) + "   " + str(d) + "   " + str(e) + "   " + str(f) + "   " + str(g))
         
     ######## ###########STEP 3 LETS MAKE THAT GRAPH!!!!!! ###############################
              
-   
+    
     plt.scatter(Vz_89Values, T89_diff_Values, color='green',  label='T89', alpha=0.5)    
     plt.scatter(Vz_96Values, T96_diff_Values, color='orange', label='T96', alpha=0.5)
     plt.scatter(Vz_01Values, T01_diff_Values, color='crimson',label='T01', alpha=0.5)
