@@ -1,104 +1,61 @@
-##### HERE WERE DOING IMPORTS
-import os
-import sys
-import glob
+'''
+    GREETINGS USER!!!! this is the script that you can use to generate fancy 
+graphs to determine satellite positions, Bx values for cluster AND
+the Tsyganenko models, AND GET proton and Oxygen outflow....
+
+    In order to use this script, you must use the magic excel file called 
+    Event_Points...it will read 3 columns and kick out some graphs using 
+    functions from the tailwag.py.....its pretty simply, check a look!!!
+    
+    Problems that need to be fixed still:
+        
+        - There's a lot of bs related to reading average outflow levels 
+            from 2005 to later...this is necessarily this programs fault
+            but keep an eye out for that K?
+
+
+'''
+##### Here we're doing our imports
 import datetime as dt
 from datetime import datetime
-from datetime import timedelta
-from dateutil.relativedelta import relativedelta
-
-import matplotlib
-from matplotlib import pyplot as plt
-from matplotlib.collections import LineCollection
-##from matplotlib import style
-import numpy as np
-import numpy.ma as ma
 import pandas as pd
-import scipy
-import scipy.signal 
-import spacepy
-from spacepy.pycdf import CDF
-from spacepy.plot import applySmartTimeTicks
-from spacepy import omni, time, pybats
-from spacepy import pybats
-import spacepy.plot
-from spacepy.plot import add_arrows, style
-import spacepy.irbempy as ib
-import spacepy.time as spt
-import spacepy.coordinates as spc
 import tailwag as tw
-import scatter
-import math
 
-
-
-#######################################################################################
-
-#### Prepare to plot:
-# Create an output directory:
-##outdir = 'fuze_plots/'
-##if not os.path.exists(outdir): os.mkdir(outdir)
-
-
-
-###################################################################################   
-
-
-   
-    
-    
-    
-    
 
     
-    
+##START HERE!!!    
 def main():
-    print("THIS IS THE BEGINNING OF THE PROGRAM:  \n")   
-    print(spacepy.plot.available(returnvals = False))
     
+    ##  Just some fancy statements to start this thing off.... 
+    ##print(spacepy.plot.available(returnvals = False))
+    print()
     print("Hello there, I wanna play a game")
     print()
 
-    ####  swiping the event points from the excel file that were gonna use
+    ####  Reading the excel file and putting it in memeory, need the columns...
     Event_Data = pd.read_excel("Event_Points.xlsx", header = 0)
     
-    ####  getting three arrays: Point_list as strings, Date_List as datetimes, and the used cluster satellite
-    Point_List = Event_Data['Narrowed Point']
-    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
+    ####  getting three arrays: Point_list as strings, Sat_List will give the 
+    ####    cluster satellite used as an int, Op_List has the string "SKIP"
+    ####     to determine if we will skip the date, Date_List will be an array
+    ####       of datetime objects that are the same/made from Point_List.....
+    Point_List = Event_Data['Narrowed Point']   
     Sat_List   = Event_Data['USED SAT']
     Op_List    = Event_Data['Operation']
+    Date_List  = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M:%S.%f') for date in Point_List]
     
-    
-    
+    #### Loop to determine whether we skip the date, or make a graph with it....
+    ####  Go read the function to see what all the cool inputs and 
+    ####    conditions do...HINT: THIS IS CAN BE USED TO CHECK OUTFLOW LEVELS!!
     for (a, b, c) in zip(Date_List, Sat_List, Op_List):
         if c == "SKIP":
             continue
         else:
             tw.fusion(a, b, 12, add_tsyg=True, add_scatter = True, outdir = 'check_plots/')
             
-        
-        
+    #### We reached the end, so heres a print statement to let us know....
     print("game over, the user wins")
     
-        
-    
- 
-             
-           
-
-
-             
-             
-        
-        
-        
-        
-        
-  
- 
-    
-        
-
 #########################################################################################################
 # If this file is used via IPython's "run" magic command,
 # Evaluate on all figures.
