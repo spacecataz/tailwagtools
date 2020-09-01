@@ -7,9 +7,7 @@
             https://stackoverflow.com/questions/35581644/linalgerror-svd-did-not-converge-in-linear-least-squares-when-trying-polyfit
             
         - Single Point error from 2017-09-09 14:35:48.000
-            we get the following error for this point, just leave it out...
-            LinAlgError: SVD did not converge in Linear Least Squares
-
+            we get the following error for this pint
 
 '''
 ##### HERE WERE DOING IMPORTS
