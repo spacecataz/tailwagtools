@@ -223,9 +223,7 @@ def split_crossing_info(epoch, sat, interval_hour, debug=False):
     '''
     
     #Fetch cluster data given an epoch
-    data = tailwag.fetch_cluster_data(epoch, sat, interval_hour) #get Cluster data
-    loc = np.abs(data['b'][:,0])==np.abs(data['b'][:,0]).min() #location of Cluster crossing
-    t_cluster = data['fgm_time'][loc] #Cluster crossing time
+    data = tailwag.fetch_cluster_data(epoch, sat=sat, tspan=interval_hour) #get Cluster data
     
     #Fetch cluster plasma data
     t_cis = data['cis_time'] #get Cluster CIS times
@@ -233,25 +231,20 @@ def split_crossing_info(epoch, sat, interval_hour, debug=False):
     o_dens = data['dens_o']
     
     #Location t_cis closest to t_cluster
-    #MXB notes: should we change this into tricky indexing instead of np.where? this is probably too chonky
-    index_cluster = np.where(t_cis<=t_cluster)[0][-1] #locate CIS time <= cluster crossing time
-    tdelt_before = t_cluster-t_cis[index_cluster] #timedelta using t_cis less than t_cluster
-    
+    # MXB notes: should we change this into tricky indexing instead of np.where?
+    # this is probably too chonky
+    # DTW NOTES: I think this should be epoch.
+    index_cluster = np.where(t_cis<=epoch)[0][-1] #locate CIS time <= cluster crossing time
     
     ##print("The tdeltbefore is the following:     " + str(tdelt_before))
     ##print("The tcis index cluster + 1 is the following:     " + str(t_cis[index_cluster+1]))
     ##print("The tcluster is the following:     " + str(t_cluster))
    
-    tdelt_after = t_cis[index_cluster+1]-t_cluster #timedelta using t_cis more than t_cluster
-    if tdelt_before > tdelt_after: #compare the two, if the timedelta of t_cis less > t_cis more, then change index_cluster to the location of t_cis more
-        index_cluster = index_cluster+1
-
     # Print some debug information:
     if debug:
         print('----------DEBUG----------')
-        print(f'\tCrossing epoch from file: {epoch}')
+        print(f'\tCrossing epoch from file:      {epoch}')
         print(f'\tCrossing time from CIS epochs: {t_cis[index_cluster]}')
-        
      
     cluster_before = []
     cluster_after  = []
