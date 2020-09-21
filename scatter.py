@@ -171,7 +171,7 @@ def get_crossing_info(epoch, debug=False):
     return(t_cluster, t_times, cluster_after, cluster_before)
 
 
-def split_crossing_info(epoch, sat, interval_hour, debug=False):
+def split_crossing_info(epoch, sat, interval_hour, tbuff=0, debug=False):
     '''
     For a given crossing epoch, calculate and return:
     - the crossing time for all Tsgyanenko models under consideration
@@ -189,6 +189,10 @@ def split_crossing_info(epoch, sat, interval_hour, debug=False):
     
     Other Parameters
     ----------------
+    tbuff : int
+       Time buffer, in minutes, immediately before and after, to exclude
+       from calculation of density averages.  Defaults to zero.  Increase to
+       try to remove density noise about central plasma sheet and focus on lobes.
     debug : boolean
        Turn on debug information.  Defaults to False
 
@@ -230,15 +234,8 @@ def split_crossing_info(epoch, sat, interval_hour, debug=False):
     h_dens = data['dens_h']
     o_dens = data['dens_o']
     
-    #Location t_cis closest to t_cluster
-    # MXB notes: should we change this into tricky indexing instead of np.where?
-    # this is probably too chonky
-    # DTW NOTES: I think this should be epoch.
+    #Location t_cis closest to epoch
     index_cluster = np.where(t_cis<=epoch)[0][-1] #locate CIS time <= cluster crossing time
-    
-    ##print("The tdeltbefore is the following:     " + str(tdelt_before))
-    ##print("The tcis index cluster + 1 is the following:     " + str(t_cis[index_cluster+1]))
-    ##print("The tcluster is the following:     " + str(t_cluster))
    
     # Print some debug information:
     if debug:
@@ -248,17 +245,16 @@ def split_crossing_info(epoch, sat, interval_hour, debug=False):
      
     cluster_before = []
     cluster_after  = []
-        #Calculate Cluster average density after
-    loc = t_cis>t_cis[index_cluster] #location after Cluster crossing
+    # Calculate Cluster average density after
+    loc = t_cis>epoch+dt.timedelta(minutes=tbuff) #location after Cluster crossing
     cluster_after.append(h_dens[loc].mean()) #average H+ density + average O+ density
     cluster_after.append(o_dens[loc].mean())
         #Calculate Cluster average density before
-    loc = t_cis<t_cis[index_cluster] #location before Cluster crossing
+    loc = t_cis<epoch-dt.timedelta(minutes=tbuff) #location before Cluster crossing
     cluster_before.append(h_dens[loc].mean()) #average H+ density + average O+ density
     cluster_before.append(o_dens[loc].mean())
     
-
-        #Get crossing time and densities for each Tsyg model
+    #Get crossing time and densities for each Tsyg model
     t_times = {} #container for times
     index_Tsyg = {}
 
