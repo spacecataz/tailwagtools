@@ -805,20 +805,6 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     
     ### Adding a section here to get the densitiies for before and after the crossing....
     ### H is first, O is second...
-    if add_scatter:
-        print("bork")
-        print(Date_date)
-        t_cluster, t_times, cluster_after, cluster_before = scatter.split_crossing_info(Date_date)
-        
-            
-        initial_h = cluster_before[0]
-        initial_o = cluster_before[1]
-        final_h   = cluster_after[0]
-        final_o   = cluster_after[1]
-        cross_T89 = t_times['T89']
-        cross_T96 = t_times['T96']
-        cross_T01 = t_times['T01STORM']
-        
        
             
     
@@ -831,7 +817,22 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
     for n in range(interval_hours, 1, -2):
         print(f"WERE NOW INSIDE THE LOOPING FUNCTION TO SNAG VALUES...... n={n}\n")
-
+        
+        #try to add scatter here
+        if add_scatter:
+            print("bork")
+            print(Date_date)
+            t_cluster, t_times, cluster_after, cluster_before = scatter.split_crossing_info(Date_date, 1, n) #n hours in interval
+        
+            
+            initial_h = cluster_before[0]
+            initial_o = cluster_before[1]
+            final_h   = cluster_after[0]
+            final_o   = cluster_after[1]
+            cross_T89 = t_times['T89']
+            cross_T96 = t_times['T96']
+            cross_T01 = t_times['T01STORM']
+        
         ####  Set up start and stop times so that we can narrow our data down early
         start_Time = Date_date - timedelta(hours = n)
         end_Time   = Date_date + timedelta(hours = n)
@@ -907,10 +908,10 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
         
         
         if add_scatter:
-            ax4.hlines(initial_h, start_Time, Date_date, lw=1, color='g', linestyle = '--')
-            ax4.hlines(final_o, Date_date, end_Time, lw=1, color='g', linestyle = '--')
-            ax5.hlines(initial_o, start_Time, Date_date, lw=1, color='r', linestyle = '--')
+            ax4.hlines(initial_h, start_Time, Date_date, lw=1, color='r', linestyle = '--')
             ax5.hlines(final_h, Date_date, end_Time, lw=1, color='r', linestyle = '--')
+            ax5.hlines(initial_o, start_Time, Date_date, lw=1, color='g', linestyle = '--')
+            ax4.hlines(final_o, Date_date, end_Time, lw=1, color='g', linestyle = '--')
             ax3.axvline(x = cross_T89, ymin = 0, ymax = 1, lw=1, color = 'green', linestyle = '--')
             ax3.axvline(x = cross_T96, ymin = 0, ymax = 1, lw=1, color = 'orange', linestyle = '--')
             ax3.axvline(x = cross_T01, ymin = 0, ymax = 1, lw=1, color = 'crimson', linestyle = '--')

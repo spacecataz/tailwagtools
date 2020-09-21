@@ -171,7 +171,7 @@ def get_crossing_info(epoch, debug=False):
     return(t_cluster, t_times, cluster_after, cluster_before)
 
 
-def split_crossing_info(epoch, debug=False):
+def split_crossing_info(epoch, sat, interval_hour, debug=False):
     '''
     For a given crossing epoch, calculate and return:
     - the crossing time for all Tsgyanenko models under consideration
@@ -182,7 +182,11 @@ def split_crossing_info(epoch, debug=False):
     ----------
     epoch : datetime.datetime
        The time of the cluster crossing of the plasmasheet.
-
+    sat : an int
+        Cluster satellite 1
+    interval_hour : int
+        A int that will give us the number of hours on each side of our POI
+    
     Other Parameters
     ----------------
     debug : boolean
@@ -219,7 +223,7 @@ def split_crossing_info(epoch, debug=False):
     '''
     
     #Fetch cluster data given an epoch
-    data = tailwag.fetch_cluster_data(epoch) #get Cluster data
+    data = tailwag.fetch_cluster_data(epoch, sat, interval_hour) #get Cluster data
     loc = np.abs(data['b'][:,0])==np.abs(data['b'][:,0]).min() #location of Cluster crossing
     t_cluster = data['fgm_time'][loc] #Cluster crossing time
     
@@ -297,7 +301,7 @@ if __name__ == '__main__':
             'dtT96':[], 'dtT01STORM':[]}
 
     # Now, loop through all events and gather information:
-    for i, t in enumerate(all_epochs[:10]):
+    for i, t in enumerate(all_epochs[:60]):
 
         print(f'****WORKING ON CROSSING #{i} AT {t}*****')
         # Get crossing info from cool function:
@@ -311,7 +315,7 @@ if __name__ == '__main__':
             else:
                 data['dt'+vers].append( (t - t_times[vers]).total_seconds()/60. ) #in minutes!
         data['dDens'].append( c_before - c_after )
-        
+    
     to_pickle(data,"tastypickle")
 
 
