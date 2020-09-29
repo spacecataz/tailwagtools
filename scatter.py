@@ -198,19 +198,17 @@ def split_crossing_info(epoch, sat, interval_hour, tbuff=0, debug=False):
 
     Returns
     -------
-    t_cluster : datetime.datetime
-        Time of crossing observed in Cluster
     t_times : array of datetime.datetime
         Time of crossing observed in T89, T96, AND T01STORM
         T89 =  t_times[0], T96 = t_times[1], AND T01STORM = t_times[2]      
     cluster_before : array of float values
         An array of values that yield the average value before 
         the time crossing.. ...
-        cluster_before[0] = H value, cluster_before[1] = O value
+        cluster_before[0] = H+ value, cluster_before[1] = Oxygen value
     cluster_after : array of float values
         An array of values that yield the average value after 
         the time crossing.. ...
-        cluster_after[0] = H value, cluster_after[1] = O value
+        cluster_after[0] = H+ value, cluster_after[1] = Oxygen value
 
 
     Example
@@ -247,12 +245,12 @@ def split_crossing_info(epoch, sat, interval_hour, tbuff=0, debug=False):
     cluster_after  = []
     # Calculate Cluster average density after
     loc = t_cis>epoch+dt.timedelta(minutes=tbuff) #location after Cluster crossing
-    cluster_after.append(h_dens[loc].mean()) #average H+ density + average O+ density
-    cluster_after.append(o_dens[loc].mean())
+    cluster_after.append(h_dens[loc].mean()) #average H+ density
+    cluster_after.append(o_dens[loc].mean()) #average O density
         #Calculate Cluster average density before
     loc = t_cis<epoch-dt.timedelta(minutes=tbuff) #location before Cluster crossing
-    cluster_before.append(h_dens[loc].mean()) #average H+ density + average O+ density
-    cluster_before.append(o_dens[loc].mean())
+    cluster_before.append(h_dens[loc].mean()) #average H+ density
+    cluster_before.append(o_dens[loc].mean()) #average O density
     
     #Get crossing time and densities for each Tsyg model
     t_times = {} #container for times
@@ -270,7 +268,7 @@ def split_crossing_info(epoch, sat, interval_hour, tbuff=0, debug=False):
                 t_times[vers] = np.nan
     
 
-    return(t_cluster, t_times, cluster_after, cluster_before)
+    return(t_times, cluster_after, cluster_before)
 
 
 if __name__ == '__main__':
