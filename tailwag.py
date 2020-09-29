@@ -822,7 +822,7 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
         if add_scatter:
             print("bork")
             print(Date_date)
-            t_cluster, t_times, cluster_after, cluster_before = scatter.split_crossing_info(Date_date, 1, n) #n hours in interval
+            t_times, cluster_after, cluster_before = scatter.split_crossing_info(Date_date, 1, n) #n hours in interval
         
             
             initial_h = cluster_before[0]
@@ -905,13 +905,14 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
         ax5.grid(axis='y')
         #ax5.grid(b = None, which='major', axis='both', color = 'r', linestyle = '--', alpha= 0.2 )
         applySmartTimeTicks(ax4, [start_Time, end_Time])  
-        
-        
+
+
+
         if add_scatter:
-            ax4.hlines(initial_h, start_Time, Date_date, lw=1, color='r', linestyle = '--')
-            ax5.hlines(final_h, Date_date, end_Time, lw=1, color='r', linestyle = '--')
-            ax5.hlines(initial_o, start_Time, Date_date, lw=1, color='g', linestyle = '--')
-            ax4.hlines(final_o, Date_date, end_Time, lw=1, color='g', linestyle = '--')
+            ax5.hlines(initial_h, start_Time, Date_date, lw=1, color='r', linestyle = '--') #mean of density of h before  crossing
+            ax5.hlines(final_h, Date_date, end_Time, lw=1, color='r', linestyle = '--') #mean of density of h after crossing
+            ax4.hlines(initial_o, start_Time, Date_date, lw=1, color='g', linestyle = '--') #mean of density of o before crossing
+            ax4.hlines(final_o, Date_date, end_Time, lw=1, color='g', linestyle = '--') #mean of density of o after crossing
             ax3.axvline(x = cross_T89, ymin = 0, ymax = 1, lw=1, color = 'green', linestyle = '--')
             ax3.axvline(x = cross_T96, ymin = 0, ymax = 1, lw=1, color = 'orange', linestyle = '--')
             ax3.axvline(x = cross_T01, ymin = 0, ymax = 1, lw=1, color = 'crimson', linestyle = '--')
