@@ -186,7 +186,7 @@ def parse_event_table(filename='default'):
         data.append(_parse_table_line(parts))
 
     return data
-    
+
 def gen_sat_tsyg(cluster_data, extMag='T89', dbase='qd1min'):
     '''
     Given a cluster data dict that contains both time and position of a 
@@ -198,7 +198,7 @@ def gen_sat_tsyg(cluster_data, extMag='T89', dbase='qd1min'):
 
     Parameters
     ==========
-    cluster_file : dictionary
+    cluster_data : dictionary
         A dictionary of cluster values from fetch_cluster_data.
 
     Other Parameters
@@ -218,7 +218,7 @@ def gen_sat_tsyg(cluster_data, extMag='T89', dbase='qd1min'):
         An array of datetime objects.
     mag_gsm : array
         A nTime-by-3 array of the magnetic field data.
-
+        
     OPEN QUESTIONS/TO-DO
 
     -verification of results- compare to CCMC test?
@@ -268,6 +268,40 @@ def gen_sat_tsyg(cluster_data, extMag='T89', dbase='qd1min'):
     # Return time and b-field data.  Strip away extraneous information
     # added by spacepy (via .UTC and .data, which give values only.)
     return(time.UTC, b_out.data)
+
+def get_QD_omni(cluster_time, dbase='qd1min'):
+    '''
+    Given the time frame of cluster data, find the QinDenton OMNI values of the z-component of interplanetary magnetic field (IMF) as well as any other OMNI values necessary to map out.
+    
+    OPEN QUESTIONS/TO-DO
+    
+    I'm doing this bc many functions are dependent on the two outputs (time.UTC, b_out.data) of gen_sat_tsyg, so I'm separating the reception of OMNI data to this function. Would it be easier to load all of the QD OMNI data here, or should we import spacepy.omni and load each time?
+    Also, should we combine kp_finder_event and kp_finder_range into this function?
+    
+    Parameters
+    ==========
+    time : array
+        An array of datetime objects from gen_sat_tsyg.
+    
+    Returns
+    =======
+    QD_data : dictionary
+        Dictionary of QinDenton OMNI data values to be evaluated
+    '''
+    import spacepy.omni as om
+    
+    # Build empty OMNI data container:
+    QD_data = {}
+    
+    # Get QinDenton OMNI data
+    import spacepy.omni as om
+    QD = om.get_omni(time, dbase=dbase)
+    
+    # Get Bz IMF values from OMNI data
+    QD_data['time']   = QD['UTC']
+    QD_data['Bz_IMF'] = QD['BzIMF']
+    
+    return (QD_data)
 
 def get_cluster_filename(epoch, sat=1):
     '''
@@ -741,7 +775,9 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     ax4 : a subplot
        A subplot for Oxygen densities 
     ax5 : a subplot
-       A subplot for Hydrogen densities 
+       A subplot for Hydrogen densities
+    ax6 : a subplot
+        A subplot for IMF Bz from QinDenton OMNI
 
     '''
     from datetime import timedelta 
@@ -815,10 +851,11 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     ###################################################################################
     
     ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
+    #for n in range(interval_hours, 1, -2):
     for n in range(interval_hours, 1, -2):
         print(f"WERE NOW INSIDE THE LOOPING FUNCTION TO SNAG VALUES...... n={n}\n")
         
-        #try to add scatter here
+        #add scatter here
         if add_scatter:
             print("bork")
             print(Date_date)
@@ -844,8 +881,9 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
         
         
         ####Creating the 4 subplots were going to need
-        ax1, ax2 = fig.add_subplot(321), fig.add_subplot(322)
-        ax3, ax4 = fig.add_subplot(312), fig.add_subplot(313)
+        ax1, ax2 = fig.add_subplot(421), fig.add_subplot(422)
+        ax3, ax4 = fig.add_subplot(412), fig.add_subplot(413)
+        ax6 = fig.add_subplot(414)
 
         # Cut down orbits to ONLY period of interest +/- N hours
         filter2 = (Data_Dict['fgm_time']>=start_Time) & (Data_Dict['fgm_time']<=end_Time)
@@ -918,15 +956,22 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
             ax3.axvline(x = cross_T01, ymin = 0, ymax = 1, lw=1, color = 'crimson', linestyle = '--')
                   
         
+        import spacepy.omni as om
+        QD = om.get_omni(FGM_time, dbase='qd1min')
         
-        
-        
-    
+        # add a plot describing Bz IMF, adding solar wind conditions to the plot
+        ax6.set_title('$B_z$ IMF')
+        ax6.set_ylabel('$B_z$ (nT)')
+        ax6.set_xlabel('Time')
+        ax6.plot(QD['UTC'], QD['BzIMF'])
+        ax6.hlines(0, start_Time, end_Time, lw=1, color='black', linestyle = '--')
+        applySmartTimeTicks(ax6, [start_Time, end_Time])
         
         ##### With these 2 blocks were adding planet earth to our postion graphs
         ##### and adding a cool style  to our plots
-        ax1 = fig.add_subplot(321)
-        ax2 = fig.add_subplot(322)
+        #ax1 = fig.add_subplot(321)
+        #ax2 = fig.add_subplot(322)
+        # These were adding an extra graph over ax1 and ax2, not sure why
        
         spacepy.pybats.add_planet(ax1)
         spacepy.pybats.add_planet(ax2)
@@ -945,7 +990,6 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
 def wind_graph(Date_List, Op_List):   
     '''
     
-
     Parameters
     ----------
     Date_List : Array of Datetime ofjects
