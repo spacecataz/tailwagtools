@@ -859,7 +859,7 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
         if add_scatter:
             print("bork")
             print(Date_date)
-            t_times, cluster_after, cluster_before = scatter.split_crossing_info(Date_date, 1, n) #n hours in interval
+            t_times, cluster_after, cluster_before = scatter.split_crossing_info(Date_date, Sat_int, n) #n hours in interval
         
             
             initial_h = cluster_before[0]
