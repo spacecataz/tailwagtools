@@ -852,7 +852,7 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     
     ####LOOP THAT WILL ITERATE 3 TIMES TO GIVE US OUR 3 GRAPHS PER EPOCH........#####
     #for n in range(interval_hours, 1, -2):
-    for n in range(interval_hours, 1, -2):
+    for n in range(interval_hours, 1, -3):
         print(f"WERE NOW INSIDE THE LOOPING FUNCTION TO SNAG VALUES...... n={n}\n")
         
         #add scatter here
@@ -893,16 +893,15 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
 
         # Axes 1: Orbit in x-y plane:
         line1 = ax1.plot(x, y)        
-        ax1.set(xlabel='X in R$_E$', ylabel='Y in R$_E$',
-                    title=' X vs Y position')
+        ax1.set(xlabel='X (R$_E$)', ylabel='Y (R$_E$)', title=' X vs Y position')
         add_arrows(line1, n = 5, size = 18, style = '->')     
         ax1.annotate('Tail Crossing', xy=(ind_x,ind_y), xytext = (ind_x + 0.2, ind_y),
-                         arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)  
+                         arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),)
         ax1.plot(ind_x, ind_y, 'o', ms=3)   
         
         # Axes 2: Orbit in x-z plane:
         line2 = ax2.plot(x, z)
-        ax2.set(xlabel='X in R$_E$', ylabel='Z in R$_E$',
+        ax2.set(xlabel='X (R$_E$)', ylabel='Z (R$_E$)',
                 title=' X vs Z position')
         add_arrows(line2, n = 5, size = 18, style = '->')
         ax2.annotate('Tail Crossing', xy=(ind_x,ind_z), xytext = (ind_x + 0.2, ind_z),
@@ -911,8 +910,8 @@ def fusion(Date_date, Sat_int, interval_hours, add_tsyg=True, add_scatter = True
     
         # Axes 3: Magnetic field x-component:
         ax3.plot(FGM_time, Bx, 'b-', lw = .5, label=f'Cluster {Sat_int} B$_X$')
-        ax3.set(xlabel='time', ylabel='$B_X$ in nT',
-                    title='$B_X$ Magnitude')
+        ax3.set(xlabel='time', ylabel='$B_X$ (nT)',
+                    title='$B_X$')
         ax3.hlines(0, start_Time, end_Time, lw=1, color='black', linestyle = '--')
         ax3.axvline(x = Date_date, ymin = 0, ymax = 1, lw=1, color = 'black', linestyle = '--')
         applySmartTimeTicks(ax3, [start_Time, end_Time])

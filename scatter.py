@@ -275,7 +275,9 @@ if __name__ == '__main__':
     '''
     If run as script, the following commands will execute.
     '''
-
+    
+    import matplotlib.pyplot as plt; plt.ion()
+    
     # Let's set up a quick demo for now:
     # Goal: have entire plotting/statistical analysis run here.
 
@@ -288,11 +290,12 @@ if __name__ == '__main__':
             'dtT96':[], 'dtT01STORM':[]}
 
     # Now, loop through all events and gather information:
-    for i, t in enumerate(all_epochs[:60]):
+    for i, t in enumerate(all_epochs):
 
         print(f'****WORKING ON CROSSING #{i} AT {t}*****')
         # Get crossing info from cool function:
-        t_clus, t_times, c_after, c_before = get_crossing_info(t)
+        #t_clus, t_times, c_after, c_before = get_crossing_info(t)
+        t_times, c_after, c_before = split_crossing_info(t, 1, 6) #n hours in interval
         
         # Store info into our big data container:
         data['epoch'].append(t)
@@ -301,16 +304,38 @@ if __name__ == '__main__':
                 data['dt'+vers].append(np.nan)
             else:
                 data['dt'+vers].append( (t - t_times[vers]).total_seconds()/60. ) #in minutes!
-        data['dDens'].append( c_before - c_after )
+        data['dDensH'].append( c_before[0] - c_after[0])
+        data['dDensO'].append( c_before[1] - c_after[1])
     
-    to_pickle(data,"tastypickle")
+    to_pickle(data,"tastypickle_test")
+
+    x = data['dtT89']
+    y1 = data['dDensH']
+    y2 = data['dDensO']
 
 
-    # If we're smart, we're saving this data to an external file.
-    # We then make the plot and analysis stuff SEPARATELY because
-    # processing the data takes waaayyy too long.
-    # Save the data as a pickle.
-    # see here: https://nbviewer.jupyter.org/url/www-personal.umich.edu/~dwelling/python/notebooks/primer03_fileIO.ipynb
-
+    fig = plt.figure()
+    ax1, ax2 = fig.add_subplot(211), fig.add_subplot(212)
+    ax1.plot(x,y1,'bo')
+    #ax1.set_suptitle('Difference in Ionospheric Outflow v. Difference in Time')
+    ax1.set_ylabel('$\Delta$ Protons per $cm^3$')
+    ax1.set_xlabel('$\Delta$ Time')
     
-    # Add verification plotting here!
+    ax2.plot(x,y2,'o')
+    ax2.set_ylabel('$\Delta$ Oxygen per $cm^3$')
+    ax2.set_xlabel('$\Delta$ Time')
+    
+    
+    
+    #plt.suptitle('Approximate Total Current by SW Pressure (Southward)', fontsize = 18)
+    plt.show()
+
+
+        # If we're smart, we're saving this data to an external file.
+        # We then make the plot and analysis stuff SEPARATELY because
+        # processing the data takes waaayyy too long.
+        # Save the data as a pickle.
+        # see here: https://nbviewer.jupyter.org/url/www-personal.umich.edu/~dwelling/python/notebooks/primer03_fileIO.ipynb
+
+        
+        # Add verification plotting here!
